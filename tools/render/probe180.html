@@ -22,9 +22,11 @@
   (function () {
     var mode = location.hash.replace('#', '') || 'today';
     var S = window.Store;
-    window.ZGHDBug.setState(window.SEED);
+    window.ZGHDBug.setState(S.normalize(window.SEED));
 
-    if (mode === 'data') { window.ZGHDBug.go('data', S.todayKey()); }
+    if (mode === 'meal') { window.ZGHDBug.go('today', S.todayKey()); document.querySelector('[data-act="meal"][data-meal="lunch"]').click(); }
+    else if (mode === 'workout') { window.ZGHDBug.go('today', S.todayKey()); document.querySelector('[data-act="workout"]').click(); }
+    else if (mode === 'data') { window.ZGHDBug.go('data', S.todayKey()); }
     else if (mode === 'body') { window.ZGHDBug.go('body', S.todayKey()); }
     else if (mode === 'week' || mode === 'month') {
       window.ZGHDBug.go('today', S.todayKey());
