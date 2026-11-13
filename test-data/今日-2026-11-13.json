@@ -1,0 +1,24 @@
+{
+ "schemaVersion": 3,
+ "days": {
+  "2026-11-13": {
+   "train": true,
+   "meals": {
+    "breakfast": {
+     "carbs": 47,
+     "protein": 19,
+     "fat": 14,
+     "kcal": 410,
+     "note": "茶叶蛋2个 + 八宝粥1碗"
+    },
+    "lunch": {
+     "carbs": 49,
+     "protein": 33,
+     "fat": 27,
+     "kcal": 566,
+     "note": "米饭150g+鸡腿1个+咖喱鸡块+青菜（按餐前餐后估算）"
+    }
+   }
+  }
+ }
+}

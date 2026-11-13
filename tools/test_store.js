@@ -181,5 +181,18 @@ S.applyHealth(stOnly, S.parseHealth('2026-11-14,500,0,9000,0'));
 const btOnly = S.burnTotalOf(stOnly.days['2026-11-14'], S.defaultPlan());
 eq('只导活动能量时用 BMR 补静息', btOnly.total, 500 + Math.round(S.bmr(S.defaultPlan())));
 
+console.log('== 合并导入 ==');
+const bst = S.emptyState();
+bst.days['2026-11-13'] = Object.assign(S.newDay(), {});
+bst.days['2026-11-13'].meals.breakfast = { carbs: 10, protein: 10, fat: 5, kcal: null, note: 'x' };
+bst.days['2026-11-13'].health = { active: 100, resting: 1400, steps: 1000, workoutMin: 0 };
+bst.days['2026-11-12'] = Object.assign(S.newDay(), { weightKg: 63 });
+const inc = { days: { '2026-11-13': { meals: { lunch: { carbs: 50, protein: 30, fat: 10, kcal: 400, note: 'y' } } } } };
+const mg = S.mergeState(bst, inc);
+eq('合并保留原有早饭', mg.days['2026-11-13'].meals.breakfast.carbs, 10);
+eq('合并新增午饭', mg.days['2026-11-13'].meals.lunch.protein, 30);
+eq('合并保留健康数据', mg.days['2026-11-13'].health.active, 100);
+eq('合并保留其他日期', mg.days['2026-11-12'].weightKg, 63);
+
 console.log(`\n通过 ${pass}，失败 ${fail}`);
 process.exit(fail ? 1 : 0);

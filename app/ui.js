@@ -505,7 +505,8 @@
         '<div class="hint">上次备份：' + backupLabel() + '。数据存在本机浏览器里，换地址或清缓存会丢，建议每周导一次。</div>' +
         '<button class="primary" data-act="export-json">导出备份（JSON）</button>' +
         '<button class="ghost" data-act="export-csv">导出表格（CSV）</button>' +
-        '<button class="ghost" data-act="import">从备份恢复</button>' +
+        '<button class="ghost" data-act="import">从备份恢复（整份替换）</button>' +
+        '<button class="ghost" data-act="merge">合并导入（只覆盖同一天）</button>' +
         '<button class="ghost danger" data-act="reset">清空全部数据</button>' +
       '</div>');
   }
@@ -535,7 +536,7 @@
   }
   function stamp() { return S.todayKey().replace(/-/g, ''); }
 
-  function importFile() {
+  function importFile(mergeMode) {
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json,.json';
@@ -545,10 +546,11 @@
       var reader = new FileReader();
       reader.onload = function () {
         try {
-          state = S.normalize(JSON.parse(String(reader.result)));
+          var data = JSON.parse(String(reader.result));
+          state = mergeMode ? S.mergeState(state, data) : S.normalize(data);
           persist();
           closeSheet();
-          alert('导入成功：' + Object.keys(state.days).length + ' 天');
+          alert((mergeMode ? '合并导入成功：' : '导入成功：') + Object.keys(data.days || {}).length + ' 天');
         } catch (e) { alert('导入失败：文件格式不对'); }
       };
       reader.readAsText(file);
@@ -678,7 +680,8 @@
       case 'export-csv':
         download('最好的我-' + stamp() + '.csv', '\ufeff' + S.toCsv(state), 'text/csv');
         break;
-      case 'import': importFile(); break;
+      case 'import': importFile(false); break;
+      case 'merge': importFile(true); break;
       case 'reset':
         if (confirm('确定清空全部数据？建议先导出备份。')) { state = S.emptyState(); persist(); closeSheet(); }
         break;

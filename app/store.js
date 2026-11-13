@@ -357,6 +357,29 @@
     }
     return { total: Math.round(noExerciseKcal(plan) + burnOf(day, plan).total), source: 'estimate' };
   }
+
+  /* 合并导入：只覆盖传入的那些天，其余原样保留 */
+  function mergeState(base, incoming) {
+    var out = JSON.parse(JSON.stringify(base));
+    var inc = normalize(incoming);
+    Object.keys(inc.days || {}).forEach(function (k) {
+      var src = inc.days[k];
+      var dst = out.days[k] || newDay();
+      dst.meals = dst.meals || {};
+      ['breakfast', 'pre', 'lunch', 'dinner', 'snack'].forEach(function (m) {
+        if (src.meals && src.meals[m]) dst.meals[m] = src.meals[m];
+      });
+      if (src.lift) dst.lift = src.lift;
+      if (src.cardio) dst.cardio = src.cardio;
+      if (src.health) dst.health = src.health;
+      if (src.weightKg !== null && src.weightKg !== undefined) dst.weightKg = src.weightKg;
+      if (src.waterMl) dst.waterMl = src.waterMl;
+      if (src.train !== undefined && src.train !== null) dst.train = !!src.train;
+      out.days[k] = dst;
+    });
+    return normalize(out);
+  }
+
   /* ---------- 存取 ---------- */
   var mem = null;
   function hasLS() { try { return typeof localStorage !== 'undefined' && localStorage !== null; } catch (e) { return false; } }
@@ -411,6 +434,6 @@
     factor: factor, targetKcal: targetKcal, macros: macros, targets: targets,
     mealKcal: mealKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
     ma7: ma7, trend: trend, toCsv: toCsv, r1: r1,
-    parseHealth: parseHealth, applyHealth: applyHealth, burnTotalOf: burnTotalOf
+    parseHealth: parseHealth, applyHealth: applyHealth, burnTotalOf: burnTotalOf, mergeState: mergeState
   };
 })(typeof window !== 'undefined' ? window : globalThis);
