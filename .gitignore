@@ -12,3 +12,6 @@ tools/_*
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# 隧道二进制，52 MB，用时再下
+tools/bin/
