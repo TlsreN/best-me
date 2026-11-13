@@ -1,15 +1,16 @@
-/* 最好的我 — 数据层与计算逻辑（纯函数，可被测试与移植） */
+/* 最好的我 — 数据层（v2 模型，纯函数，可测可移植） */
 (function (global) {
   'use strict';
 
-  var KEY = 'zghd.v1';
+  var KEY = 'zghd.v2';
+  var LEGACY_KEY = 'zghd.v1';
 
   var MEALS = [
     { id: 'breakfast', name: '早饭' },
-    { id: 'pre',       name: '练前餐' },
+    { id: 'pre',       name: '练前' },
     { id: 'lunch',     name: '午饭 · 练后' },
     { id: 'dinner',    name: '晚饭' },
-    { id: 'snack',     name: '加餐 / 夜宵' }
+    { id: 'snack',     name: '加餐' }
   ];
 
   /* 每 kg 体重每小时消耗，取自《健身饮食.xlsx》表 16 */
@@ -27,224 +28,329 @@
   ];
 
   var MICROS = ['钠', '钾', '钙', '铁', '膳食纤维', '维生素C'];
-
   var FACTOR = { bulk: 0.84, cut: 0.64 };
+  var RANGES = { day: 30, week: 12, month: 12 };
 
-  function round1(n) { return Math.round(n * 10) / 10; }
+  function r1(n) { return Math.round((Number(n) || 0) * 10) / 10; }
+  function nz(n) { var v = Number(n); return isFinite(v) ? v : 0; }
 
   function defaultPlan() {
     return {
       direction: 'bulk',
-      sex: 'male',
-      age: 24,
-      heightCm: 165,
-      weightKg: 63,
-      liftKcal: 175,
-      cardioKcal: 230,
-      proteinPerKg: 1.9,
+      sex: 'male', age: 24, heightCm: 165, weightKg: 63,
+      liftKcal: 175, cardioKcal: 230,
+      proteinPerKg: 1.9, waterMl: 2000,
       bulk: { fatG: 80, carbTrain: 3.5, carbRest: 2.7 },
       cut:  { fatG: 60, carbTrain: 2.6, carbRest: 2.2 }
     };
   }
 
   function newDay() {
-    return { train: true, weightKg: null, bodyFatPct: null, foods: [], sets: [], cardios: [], note: '' };
+    return { train: true, weightKg: null, bodyFatPct: null, foods: [], workouts: [], cardios: [], waterMl: 0 };
   }
 
   function emptyState() {
-    return { version: 1, plan: defaultPlan(), days: {}, createdAt: nowIso() };
+    return { schemaVersion: 2, plan: defaultPlan(), days: {}, foods: [], lastBackupAt: null };
   }
-
-  function nowIso() { return new Date().toISOString(); }
 
   /* ---------- 日期 ---------- */
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   function toKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
-  function parseKey(s) {
-    var p = String(s).split('-');
-    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-  }
+  function parseKey(s) { var p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function todayKey() { return toKey(new Date()); }
-  function addDays(key, n) {
-    var d = parseKey(key);
-    d.setDate(d.getDate() + n);
-    return toKey(d);
-  }
+  function addDays(key, n) { var d = parseKey(key); d.setDate(d.getDate() + n); return toKey(d); }
+  function dowLabel(key) { return ['日', '一', '二', '三', '四', '五', '六'][parseKey(key).getDay()]; }
   function dayLabel(key) {
     var d = parseKey(key);
-    var w = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
-    return (d.getMonth() + 1) + '月' + d.getDate() + '日 周' + w;
+    return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 周' + dowLabel(key);
   }
+  function weekStart(key) {
+    var d = parseKey(key);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return toKey(d);
+  }
+  function monthKey(key) { return String(key).slice(0, 7); }
 
-  /* ---------- 计算链（与 Excel 表 11 完全一致） ---------- */
+  /* ---------- 代谢 ---------- */
   function bmr(p) {
-    var base = 9.99 * p.weightKg + 6.25 * p.heightCm - 4.92 * p.age;
+    var base = 9.99 * nz(p.weightKg) + 6.25 * nz(p.heightCm) - 4.92 * nz(p.age);
     return p.sex === 'male' ? base + 5 : base - 161;
   }
   function noExerciseKcal(p) { return Math.round(bmr(p) / 0.7); }
-  function balanceKcal(p, isTrain) {
-    return noExerciseKcal(p) + (isTrain ? Number(p.liftKcal) || 0 : 0) + (Number(p.cardioKcal) || 0);
+
+  /* 力量训练与有氧分别汇总（PRD §5.3） */
+  function burnOf(day, plan) {
+    var lift = 0, cardio = 0, hasLift = false, hasCardio = false;
+    if (day) {
+      (day.workouts || []).forEach(function (w) { lift += nz(w.kcal); hasLift = true; });
+      (day.cardios || []).forEach(function (c) { cardio += nz(c.kcal); hasCardio = true; });
+      if (!hasLift && day.train) lift = nz(plan.liftKcal);
+      if (!hasCardio) cardio = nz(plan.cardioKcal);
+    }
+    return { lift: Math.round(lift), cardio: Math.round(cardio), total: Math.round(lift + cardio) };
   }
+
+  function balanceKcal(p, day) { return noExerciseKcal(p) + burnOf(day, p).total; }
   function factor(p) { return FACTOR[p.direction] || FACTOR.bulk; }
-  function targetKcal(p, isTrain) {
-    return round1(balanceKcal(p, isTrain) * factor(p));
-  }
+
+  function targetKcal(p, day) { return r1(balanceKcal(p, day) * factor(p)); }
+
   function macros(p, isTrain) {
     var d = p[p.direction] || p.bulk;
     return {
-      carbs:   round1((isTrain ? d.carbTrain : d.carbRest) * p.weightKg),
-      protein: round1(p.proteinPerKg * p.weightKg),
-      fat:     Number(d.fatG) || 0
+      carbs:   r1((isTrain ? d.carbTrain : d.carbRest) * nz(p.weightKg)),
+      protein: r1(nz(p.proteinPerKg) * nz(p.weightKg)),
+      fat:     nz(d.fatG)
     };
   }
-  function targets(p, isTrain) {
-    return { kcal: targetKcal(p, isTrain), macros: macros(p, isTrain) };
+  function targets(p, day) {
+    var isTrain = !!(day && day.train);
+    return { kcal: targetKcal(p, day), macros: macros(p, isTrain), water: nz(p.waterMl) };
   }
 
-  /* ---------- 存取 ---------- */
-  var mem = null;
-  function hasLS() {
-    try { return typeof localStorage !== 'undefined' && localStorage !== null; } catch (e) { return false; }
-  }
-  function load() {
-    var raw = null;
-    try { raw = hasLS() ? localStorage.getItem(KEY) : mem; } catch (e) { raw = null; }
-    if (!raw) return emptyState();
-    try { return normalize(JSON.parse(raw)); } catch (e) { return emptyState(); }
-  }
-  function save(state) {
-    var raw = JSON.stringify(state);
-    if (hasLS()) { try { localStorage.setItem(KEY, raw); return true; } catch (e) { /* 降级到内存 */ } }
-    mem = raw;
-    return false;
-  }
-  function normalize(s) {
-    if (!s || typeof s !== 'object') return emptyState();
-    var plan = Object.assign(defaultPlan(), s.plan || {});
-    plan.bulk = Object.assign(defaultPlan().bulk, (s.plan && s.plan.bulk) || {});
-    plan.cut  = Object.assign(defaultPlan().cut,  (s.plan && s.plan.cut)  || {});
-    var days = {};
-    Object.keys(s.days || {}).forEach(function (k) {
-      days[k] = Object.assign(newDay(), s.days[k]);
-      days[k].train = !!days[k].train;
-      ['foods', 'sets', 'cardios'].forEach(function (f) {
-        if (!Array.isArray(days[k][f])) days[k][f] = [];
-      });
-    });
-    return { version: 1, plan: plan, days: days, createdAt: s.createdAt || nowIso() };
+  /* ---------- 食物换算（PRD §4.2） ---------- */
+  function foodMacros(food, qty) {
+    var q = nz(qty);
+    var k = food.mode === 'per100g' ? q / 100 : q;
+    return {
+      carbs: r1(nz(food.carbs) * k),
+      protein: r1(nz(food.protein) * k),
+      fat: r1(nz(food.fat) * k),
+      kcal: food.kcal === null || food.kcal === undefined || food.kcal === '' ? null : r1(nz(food.kcal) * k)
+    };
   }
 
-  /* ---------- 天 ---------- */
-  function getDay(state, key, create) {
-    if (!state.days[key] && create) state.days[key] = newDay();
-    return state.days[key] || null;
+  function entryKcal(f) {
+    if (f.kcal !== null && f.kcal !== undefined && f.kcal !== '') return nz(f.kcal);
+    return r1(nz(f.carbs) * 4 + nz(f.protein) * 4 + nz(f.fat) * 9);
   }
 
-  function foodKcal(f) {
-    if (f.kcal !== null && f.kcal !== undefined && f.kcal !== '') return Number(f.kcal) || 0;
-    return round1((Number(f.carbs) || 0) * 4 + (Number(f.protein) || 0) * 4 + (Number(f.fat) || 0) * 9);
-  }
-
+  /* ---------- 当日汇总 ---------- */
   function dayTotals(day) {
-    var t = { kcal: 0, carbs: 0, protein: 0, fat: 0, micros: {}, cardioKcal: 0, tonnage: 0 };
+    var t = { kcal: 0, carbs: 0, protein: 0, fat: 0, micros: {}, water: 0, tonnage: 0, liftKcal: 0, cardioKcal: 0 };
     if (!day) return t;
     (day.foods || []).forEach(function (f) {
-      t.kcal    += foodKcal(f);
-      t.carbs   += Number(f.carbs) || 0;
-      t.protein += Number(f.protein) || 0;
-      t.fat     += Number(f.fat) || 0;
-      Object.keys(f.micros || {}).forEach(function (k) {
-        t.micros[k] = (t.micros[k] || 0) + (Number(f.micros[k]) || 0);
-      });
+      t.kcal += entryKcal(f);
+      t.carbs += nz(f.carbs);
+      t.protein += nz(f.protein);
+      t.fat += nz(f.fat);
+      Object.keys(f.micros || {}).forEach(function (k) { t.micros[k] = (t.micros[k] || 0) + nz(f.micros[k]); });
     });
-    (day.cardios || []).forEach(function (c) { t.cardioKcal += Number(c.kcal) || 0; });
-    (day.sets || []).forEach(function (s) {
-      t.tonnage += (Number(s.sets) || 0) * (Number(s.reps) || 0) * (Number(s.weight) || 0);
+    (day.workouts || []).forEach(function (w) {
+      t.liftKcal += nz(w.kcal);
+      (w.sets || []).forEach(function (s) { t.tonnage += nz(s.sets) * nz(s.reps) * nz(s.weight); });
     });
-    t.kcal = round1(t.kcal);
+    (day.cardios || []).forEach(function (c) { t.cardioKcal += nz(c.kcal); });
+    t.water = nz(day.waterMl);
+    t.kcal = r1(t.kcal);
+    t.carbs = r1(t.carbs);
+    t.protein = r1(t.protein);
+    t.fat = r1(t.fat);
     return t;
   }
 
   function isEmptyDay(day) {
     if (!day) return true;
-    return !(day.foods || []).length && !(day.sets || []).length &&
-           !(day.cardios || []).length && (day.weightKg === null || day.weightKg === undefined || day.weightKg === '');
+    return !(day.foods || []).length && !(day.workouts || []).length && !(day.cardios || []).length &&
+      !nz(day.waterMl) && (day.weightKg === null || day.weightKg === undefined || day.weightKg === '');
   }
 
-  /* 状态：good 达标 / warm 略超 / over 超很多 / empty 未记录 */
   function statusOf(state, key) {
     var day = state.days[key];
     if (isEmptyDay(day)) return 'empty';
     var t = dayTotals(day);
-    var goal = targetKcal(state.plan, !!day.train);
     if (!t.kcal) return 'empty';
+    var goal = targetKcal(state.plan, day);
     var r = t.kcal / goal;
     if (r <= 1.05) return 'good';
     if (r <= 1.15) return 'warm';
     return 'over';
   }
 
-  /* 体重 7 日均线 */
-  function weightSeries(state, fromKey, toKeyStr) {
+  /* ---------- 趋势聚合（PRD §5.5） ---------- */
+  function ma7(state, key) {
+    var sum = 0, n = 0;
+    for (var i = 0; i < 7; i++) {
+      var d = state.days[addDays(key, -i)];
+      if (d && d.weightKg !== null && d.weightKg !== undefined && d.weightKg !== '') { sum += nz(d.weightKg); n++; }
+    }
+    return n ? r1(sum / n) : null;
+  }
+
+  function trend(state, range, endKey) {
+    range = RANGES[range] ? range : 'day';
     var out = [];
-    var cur = fromKey;
-    var guard = 0;
-    while (cur <= toKeyStr && guard++ < 800) {
-      var day = state.days[cur];
-      var w = day && day.weightKg !== null && day.weightKg !== undefined && day.weightKg !== '' ? Number(day.weightKg) : null;
-      var ma = null;
-      if (w !== null) {
-        var sum = 0, n = 0;
-        for (var i = 0; i < 7; i++) {
-          var d2 = state.days[addDays(cur, -i)];
-          if (d2 && d2.weightKg !== null && d2.weightKg !== undefined && d2.weightKg !== '') {
-            sum += Number(d2.weightKg); n++;
-          }
-        }
-        ma = n ? round1(sum / n) : null;
+    var i, k, d, w, b;
+
+    if (range === 'day') {
+      for (i = RANGES.day - 1; i >= 0; i--) {
+        k = addDays(endKey, -i);
+        d = state.days[k];
+        w = d && d.weightKg !== null && d.weightKg !== undefined && d.weightKg !== '' ? nz(d.weightKg) : null;
+        b = d && !isEmptyDay(d) ? burnOf(d, state.plan) : null;
+        out.push({
+          key: k,
+          label: (parseKey(k).getMonth() + 1) + '/' + parseKey(k).getDate(),
+          weight: w,
+          ma: w !== null ? ma7(state, k) : null,
+          burn: b ? b.total : null,
+          lift: b ? b.lift : null,
+          cardio: b ? b.cardio : null
+        });
       }
-      out.push({ key: cur, weight: w, ma: ma });
-      cur = addDays(cur, 1);
+      return out;
+    }
+
+    if (range === 'week') {
+      var thisWeek = weekStart(endKey);
+      for (i = RANGES.week - 1; i >= 0; i--) {
+        var ws = addDays(thisWeek, -7 * i);
+        var sumW = 0, nW = 0, sumB = 0, hasB = false;
+        for (var j = 0; j < 7; j++) {
+          k = addDays(ws, j);
+          d = state.days[k];
+          if (d && d.weightKg !== null && d.weightKg !== undefined && d.weightKg !== '') { sumW += nz(d.weightKg); nW++; }
+          if (d && !isEmptyDay(d)) { sumB += burnOf(d, state.plan).total; hasB = true; }
+        }
+        out.push({
+          key: ws, label: (parseKey(ws).getMonth() + 1) + '/' + parseKey(ws).getDate(),
+          weight: nW ? r1(sumW / nW) : null, ma: null,
+          burn: hasB ? Math.round(sumB) : null
+        });
+      }
+      return out;
+    }
+
+    /* month */
+    var base = parseKey(endKey);
+    for (i = RANGES.month - 1; i >= 0; i--) {
+      var dt = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      var mk = dt.getFullYear() + '-' + pad(dt.getMonth() + 1);
+      var sW = 0, cW = 0, sB = 0, hB = false;
+      Object.keys(state.days).forEach(function (key) {
+        if (monthKey(key) !== mk) return;
+        var dd = state.days[key];
+        if (dd.weightKg !== null && dd.weightKg !== undefined && dd.weightKg !== '') { sW += nz(dd.weightKg); cW++; }
+        if (!isEmptyDay(dd)) { sB += burnOf(dd, state.plan).total; hB = true; }
+      });
+      out.push({
+        key: mk, label: (dt.getMonth() + 1) + ' 月',
+        weight: cW ? r1(sW / cW) : null, ma: null,
+        burn: hB ? Math.round(sB) : null
+      });
     }
     return out;
   }
 
-  function weekStart(key) {
-    var d = parseKey(key);
-    var dow = (d.getDay() + 6) % 7; /* 周一为一周第一天 */
-    d.setDate(d.getDate() - dow);
-    return toKey(d);
+  /* ---------- 存取与迁移 ---------- */
+  var mem = null;
+  function hasLS() { try { return typeof localStorage !== 'undefined' && localStorage !== null; } catch (e) { return false; } }
+
+  function normalize(s) {
+    if (!s || typeof s !== 'object') return emptyState();
+    if (s.schemaVersion === 1 || Array.isArray(s.days && s.days[Object.keys(s.days)[0]] && s.days[Object.keys(s.days)[0]].sets)) {
+      s = migrateV1(s);
+    }
+    var p = Object.assign(defaultPlan(), s.plan || {});
+    p.bulk = Object.assign(defaultPlan().bulk, (s.plan && s.plan.bulk) || {});
+    p.cut = Object.assign(defaultPlan().cut, (s.plan && s.plan.cut) || {});
+    var days = {};
+    Object.keys(s.days || {}).forEach(function (k) {
+      var d = Object.assign(newDay(), s.days[k]);
+      d.train = !!d.train;
+      ['foods', 'workouts', 'cardios'].forEach(function (f) { if (!Array.isArray(d[f])) d[f] = []; });
+      d.waterMl = nz(d.waterMl);
+      days[k] = d;
+    });
+    return {
+      schemaVersion: 2, plan: p, days: days,
+      foods: Array.isArray(s.foods) ? s.foods : [],
+      lastBackupAt: s.lastBackupAt || null
+    };
   }
 
-  /* 导出 ---------- */
-  function csvEscape(v) {
-    var s = String(v === null || v === undefined ? '' : v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  /* v1：sets[] 一把抓 → v2：workouts[] 分组 */
+  function migrateV1(s) {
+    var out = { schemaVersion: 2, plan: s.plan || {}, days: {}, foods: [], lastBackupAt: s.lastBackupAt || null };
+    var plan = Object.assign(defaultPlan(), s.plan || {});
+    Object.keys(s.days || {}).forEach(function (k) {
+      var d = s.days[k] || {};
+      var nd = newDay();
+      nd.train = !!d.train;
+      nd.weightKg = d.weightKg === undefined ? null : d.weightKg;
+      nd.bodyFatPct = d.bodyFatPct === undefined ? null : d.bodyFatPct;
+      nd.foods = (d.foods || []).map(function (f) {
+        return {
+          id: f.id, meal: f.meal, name: f.name, mode: 'manual',
+          amountG: f.amountG === undefined ? null : f.amountG, servings: null,
+          carbs: nz(f.carbs), protein: nz(f.protein), fat: nz(f.fat),
+          kcal: f.kcal === undefined ? null : f.kcal, micros: f.micros || {}
+        };
+      });
+      var sets = (d.sets || []).filter(function (x) { return x && x.exercise; });
+      if (sets.length) {
+        nd.workouts = [{
+          id: 'legacy-' + k, name: '力量训练',
+          sets: sets.map(function (x) { return { exercise: x.exercise, sets: nz(x.sets), reps: nz(x.reps), weight: nz(x.weight) }; }),
+          kcal: nz(plan.liftKcal), overridden: false
+        }];
+      }
+      nd.cardios = (d.cardios || []).map(function (c) {
+        return { id: c.id, act: c.act, minutes: nz(c.minutes), kcal: nz(c.kcal), overridden: true };
+      });
+      nd.waterMl = 0;
+      out.days[k] = nd;
+    });
+    return out;
   }
+
+  function load() {
+    if (!hasLS()) return mem ? JSON.parse(mem) : emptyState();
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) return normalize(JSON.parse(raw));
+      var old = localStorage.getItem(LEGACY_KEY);
+      if (old) {
+        var migrated = normalize(JSON.parse(old));
+        save(migrated);
+        return migrated;
+      }
+    } catch (e) { }
+    return emptyState();
+  }
+
+  function save(state) {
+    var raw = JSON.stringify(state);
+    if (!hasLS()) { mem = raw; return false; }
+    try { localStorage.setItem(KEY, raw); return true; } catch (e) { mem = raw; return false; }
+  }
+
   function toCsv(state) {
-    var rows = [['日期', '是否力训日', '餐次', '食物', '克数', '碳水g', '蛋白g', '脂肪g', '热量kcal', '体重kg']];
+    var rows = [['日期', '力训日', '餐次', '食物', '数量', '碳水g', '蛋白g', '脂肪g', '热量kcal']];
     Object.keys(state.days).sort().forEach(function (k) {
       var d = state.days[k];
-      if ((d.foods || []).length) {
-        d.foods.forEach(function (f) {
-          var meal = (MEALS.filter(function (m) { return m.id === f.meal; })[0] || {}).name || f.meal || '';
-          rows.push([k, d.train ? '是' : '否', meal, f.name || '', f.amountG || '', f.carbs || 0, f.protein || 0, f.fat || 0, foodKcal(f), d.weightKg || '']);
-        });
-      } else {
-        rows.push([k, d.train ? '是' : '否', '', '', '', 0, 0, 0, 0, d.weightKg || '']);
-      }
+      (d.foods || []).forEach(function (f) {
+        var meal = (MEALS.filter(function (m) { return m.id === f.meal; })[0] || {}).name || f.meal || '';
+        var qty = f.mode === 'perServing' ? (nz(f.servings) + ' 份') : (nz(f.amountG) + ' g');
+        rows.push([k, d.train ? '是' : '否', meal, f.name || '', qty, nz(f.carbs), nz(f.protein), nz(f.fat), entryKcal(f)]);
+      });
     });
-    return rows.map(function (r) { return r.map(csvEscape).join(','); }).join('\n');
+    return rows.map(function (r) {
+      return r.map(function (v) {
+        var s = String(v === null || v === undefined ? '' : v);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }).join('\n');
   }
 
   global.Store = {
-    KEY: KEY, MEALS: MEALS, ACTIVITIES: ACTIVITIES, MICROS: MICROS, FACTOR: FACTOR,
+    KEY: KEY, LEGACY_KEY: LEGACY_KEY, MEALS: MEALS, ACTIVITIES: ACTIVITIES, MICROS: MICROS, RANGES: RANGES, FACTOR: FACTOR,
     defaultPlan: defaultPlan, emptyState: emptyState, newDay: newDay,
-    load: load, save: save, normalize: normalize,
-    todayKey: todayKey, toKey: toKey, parseKey: parseKey, addDays: addDays, dayLabel: dayLabel, weekStart: weekStart,
-    bmr: bmr, noExerciseKcal: noExerciseKcal, balanceKcal: balanceKcal, factor: factor,
-    targetKcal: targetKcal, macros: macros, targets: targets,
-    getDay: getDay, dayTotals: dayTotals, foodKcal: foodKcal, statusOf: statusOf, isEmptyDay: isEmptyDay,
-    weightSeries: weightSeries, toCsv: toCsv, round1: round1
+    load: load, save: save, normalize: normalize, migrateV1: migrateV1,
+    toKey: toKey, parseKey: parseKey, todayKey: todayKey, addDays: addDays, dayLabel: dayLabel, weekStart: weekStart, monthKey: monthKey,
+    bmr: bmr, noExerciseKcal: noExerciseKcal, burnOf: burnOf, balanceKcal: balanceKcal,
+    factor: factor, targetKcal: targetKcal, macros: macros, targets: targets,
+    foodMacros: foodMacros, entryKcal: entryKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
+    ma7: ma7, trend: trend, toCsv: toCsv, r1: r1
   };
 })(typeof window !== 'undefined' ? window : globalThis);

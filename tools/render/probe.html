@@ -3,75 +3,69 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>probe</title>
+<title>probe v2</title>
 <link rel="stylesheet" href="../../app/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><span class="logo">我</span><div><h1>最好的我</h1><p id="brand-sub">记录</p></div></div>
-    <div class="top-actions">
-      <button class="ghost" id="btn-backup">备份</button>
-      <button class="ghost" id="btn-today">回到今天</button>
-    </div>
-  </header>
   <main id="app" class="app"></main>
   <nav class="tabbar">
-    <button class="tab on" data-view="today"><span>今天</span></button>
-    <button class="tab" data-view="calendar"><span>日历</span></button>
-    <button class="tab" data-view="trends"><span>趋势</span></button>
-    <button class="tab" data-view="plan"><span>方案</span></button>
+    <button class="tab on" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/></svg>今天</button>
+    <button class="tab" data-view="data"><svg viewBox="0 0 24 24"><path d="M4 6h16v13H4zM8 3v4M16 3v4M4 10h16"/></svg>数据</button>
+    <button class="tab" data-view="body"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>身体</button>
   </nav>
   <div id="modal-root"></div>
-  <pre id="diag" style="position:fixed;left:0;bottom:0;z-index:999;background:#000;color:#0f0;font-size:9px;margin:0;padding:2px;max-height:20vh;overflow:auto"></pre>
+
   <script src="../../app/store.js"></script>
   <script src="../../app/ui.js"></script>
   <script>
   (function () {
     var S = window.Store;
     var mode = location.hash.replace('#', '') || 'today';
-    var s = S.emptyState();
     var base = S.todayKey();
+    var s = S.emptyState();
 
-    // 造 10 天样例数据
-    for (var i = 9; i >= 0; i--) {
-      var key = S.addDays(base, -i);
-      var d = S.getDay(s, key, true);
+    s.foods = [
+      { id: 'f1', name: '鸡胸肉', mode: 'per100g', servingName: null, carbs: 0, protein: 23, fat: 1.5, kcal: 118, lastUsedAt: Date.now() },
+      { id: 'f2', name: '一碗米饭', mode: 'perServing', servingName: '碗', carbs: 60, protein: 5, fat: 1, kcal: 300, lastUsedAt: Date.now() - 1000 },
+      { id: 'f3', name: '全脂牛奶', mode: 'per100g', servingName: null, carbs: 4.8, protein: 3.3, fat: 3.6, kcal: 65, lastUsedAt: Date.now() - 5000 }
+    ];
+
+    for (var i = 12; i >= 0; i--) {
+      var k = S.addDays(base, -i);
+      var d = S.newDay();
       d.train = i % 2 === 0;
-      d.weightKg = Math.round((63 + (9 - i) * 0.06 + (i % 3 === 0 ? -0.2 : 0)) * 10) / 10;
-      d.foods.push({ id: 'a' + i, meal: 'breakfast', name: '鸡蛋+牛奶', amountG: 250, carbs: 12, protein: 20, fat: 14, kcal: 260, micros: { '钠': 180 } });
-      d.foods.push({ id: 'b' + i, meal: 'lunch', name: '米饭', amountG: 250, carbs: 65, protein: 6, fat: 1, kcal: 300, micros: {} });
-      d.foods.push({ id: 'c' + i, meal: 'lunch', name: '鸡胸肉', amountG: 150, carbs: 0, protein: 33, fat: 4, kcal: 170, micros: {} });
-      d.foods.push({ id: 'd' + i, meal: 'dinner', name: '牛肉炒菜', amountG: 300, carbs: 20, protein: 28, fat: 18, kcal: 360, micros: {} });
-      if (d.train) {
-        d.sets.push({ id: 's1' + i, exercise: '杠铃深蹲', sets: 4, reps: 8, weight: 60, rpe: 8 });
-        d.sets.push({ id: 's2' + i, exercise: '器械腿屈伸', sets: 3, reps: 12, weight: 40, rpe: 9 });
-        d.cardios.push({ id: 'c1' + i, act: 'walk', name: '平地走', minutes: 40, kcal: 160 });
-      }
-    }
-    window.ZGHDBug.setState(s);
-
-    if (mode === 'calendar') window.ZGHDBug.go('calendar', base);
-    else if (mode === 'trends') window.ZGHDBug.go('trends', base);
-    else if (mode === 'plan') window.ZGHDBug.go('plan', base);
-    else if (mode === 'modal') { window.ZGHDBug.go('today', base); document.querySelector('[data-act="add-food"]').click(); }
-
-    setTimeout(function () {
-      var doc = document.documentElement, b = document.body;
-      var app = document.getElementById('app');
-      var lines = [
-        'viewport=' + window.innerWidth + 'x' + window.innerHeight,
-        'doc.scrollWidth=' + doc.scrollWidth + ' body.scrollWidth=' + b.scrollWidth,
-        'app.clientWidth=' + app.clientWidth + ' app.offsetWidth=' + app.offsetWidth,
-        'sheet=' + (document.querySelector('.sheet') ? 'open' : 'none')
+      d.weightKg = Math.round((63 + (12 - i) * 0.05 + (i % 3 === 0 ? -0.15 : 0)) * 10) / 10;
+      d.waterMl = i % 3 === 0 ? 1500 : 2000;
+      d.foods = [
+        { id: 'a' + i, meal: 'breakfast', name: '鸡蛋+牛奶', mode: 'manual', carbs: 12, protein: 20, fat: 14, kcal: 260, micros: { '钠': 180 } },
+        { id: 'b' + i, meal: 'lunch', name: '米饭', mode: 'perServing', servings: 1.2, carbs: 72, protein: 6, fat: 1, kcal: 360, micros: {} },
+        { id: 'c' + i, meal: 'lunch', name: '鸡胸肉', mode: 'per100g', amountG: 150, carbs: 0, protein: 34.5, fat: 2.3, kcal: 177, micros: {} },
+        { id: 'd' + i, meal: 'dinner', name: '牛肉炒菜', mode: 'manual', carbs: 20, protein: 28, fat: 18, kcal: 360, micros: {} }
       ];
-      var wide = [];
-      document.querySelectorAll('body *').forEach(function (el) {
-        var r = el.getBoundingClientRect();
-        if (r.right > window.innerWidth + 1) wide.push(el.tagName + '.' + (el.className || '') + ' right=' + Math.round(r.right));
-      });
-      lines.push('overflow(' + wide.length + '): ' + wide.slice(0, 6).join(' | '));
-      document.getElementById('diag').textContent = lines.join('\n');
-    }, 300);
+      if (d.train) {
+        d.workouts = [{ id: 'w' + i, name: '力量训练', kcal: 175, overridden: false,
+          sets: [{ exercise: '杠铃深蹲', sets: 4, reps: 8, weight: 60 }, { exercise: '器械腿屈伸', sets: 3, reps: 12, weight: 40 }] }];
+        d.cardios = [{ id: 'c' + i, act: 'walk', name: '平地走', minutes: 40, kcal: 160, overridden: false }];
+      }
+      s.days[k] = d;
+    }
+
+    window.ZGHDBug.setState(s);
+    if (mode === 'data') window.ZGHDBug.go('data', base);
+    else if (mode === 'body') window.ZGHDBug.go('body', base);
+    else if (mode === 'meal') { window.ZGHDBug.go('today', base); document.querySelector('[data-act="meal"]').click(); }
+    else if (mode === 'workout') { window.ZGHDBug.go('today', base); document.querySelector('[data-act="workout"]').click(); }
+    else if (mode === 'food') { window.ZGHDBug.go('data', base); document.querySelector('[data-act="add-food"]').click(); }
+    else window.ZGHDBug.go('today', base);
+    if (mode === 'diag') {
+      var ap = document.querySelector('.app');
+      var d = document.createElement('pre');
+      d.id = 'diag';
+      d.style.cssText = 'position:fixed;left:0;bottom:0;background:#000;color:#0f0;font-size:10px;z-index:999;padding:4px;margin:0';
+      d.textContent = 'vw=' + window.innerWidth + ' docW=' + document.documentElement.scrollWidth +
+        ' appScroll=' + ap.scrollHeight + ' appClient=' + ap.clientHeight;
+      document.body.appendChild(d);
+    }
   })();
   </script>
 </body>

@@ -7,34 +7,19 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="最好的我">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#F1F1F3">
 <title>最好的我</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">我</span>
-      <div>
-        <h1>最好的我</h1>
-        <p id="brand-sub">记录 · 代谢 · 计划</p>
-      </div>
-    </div>
-    <div class="top-actions">
-      <button class="ghost" id="btn-backup">备份</button>
-      <button class="ghost" id="btn-today">回到今天</button>
-    </div>
-  </header>
-
   <main id="app" class="app"></main>
 
   <nav class="tabbar">
-    <button class="tab on" data-view="today"><span>今天</span></button>
-    <button class="tab" data-view="calendar"><span>日历</span></button>
-    <button class="tab" data-view="trends"><span>趋势</span></button>
-    <button class="tab" data-view="plan"><span>方案</span></button>
+    <button class="tab on" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/></svg>今天</button>
+    <button class="tab" data-view="data"><svg viewBox="0 0 24 24"><path d="M4 6h16v13H4zM8 3v4M16 3v4M4 10h16"/></svg>数据</button>
+    <button class="tab" data-view="body"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>身体</button>
   </nav>
 
   <div id="modal-root"></div>
