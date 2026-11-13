@@ -39,6 +39,7 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 | [v0.4.0](versions/v0.4.0/总结.md) | 2026-11-13 | 真机测试通道（局域网 + 公网隧道） |
 | [v0.4.1](versions/v0.4.1/总结.md) | 2026-11-13 | 顶栏一键备份，开始记录真实数据 |
 | [v0.4.2](versions/v0.4.2/总结.md) | 2026-11-13 | 需求收敛成 5 条，列出删减/新增建议 |
+| [v0.5.0](versions/v0.5.0/总结.md) | 2026-11-13 | 三页结构 + 风格稿（待确认，代码未动） |
 
 ## 关键文档
 
