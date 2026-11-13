@@ -153,12 +153,17 @@ console.log('== 导出 ==');
 const csv = S.toCsv(st);
 eq('CSV 行数（表头 + 40 餐）', csv.split('\n').length, 41);
 
-console.log('== 状态判定 ==');
-const stS = S.emptyState();
-stS.days[base] = Object.assign(S.newDay(), { train: true });
-stS.days[base].meals.breakfast = { carbs: 0, protein: 0, fat: 0, kcal: 3000 };
-eq('超标状态', S.statusOf(stS, base), 'over');
-eq('空日状态', S.statusOf(stS, '2000-01-01'), 'empty');
+console.log('== 日历状态（四项判定）==');
+function mkDayWith(c, p, f, k) {
+  const st = S.emptyState();
+  st.days[base] = Object.assign(S.newDay(), { train: true });
+  st.days[base].meals.lunch = { carbs: c, protein: p, fat: f, kcal: k, note: '' };
+  return st;
+}
+eq('四项都在 90–110% → 绿', S.statusOf(mkDayWith(220, 120, 80, null), base), 'good');
+eq('蛋白偏低 → 黄', S.statusOf(mkDayWith(220, 80, 80, null), base), 'warm');
+eq('碳水超 120% → 红', S.statusOf(mkDayWith(300, 120, 80, null), base), 'over');
+eq('空日 → 灰', S.statusOf(mkDayWith(0, 0, 0, 0), '2000-01-01'), 'empty');
 
 
 console.log('== 健康数据导入 ==');

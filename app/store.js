@@ -148,15 +148,25 @@
     return !hasMeal && !day.lift && !day.cardio && !nz(day.waterMl) && !w;
   }
 
+  /* 日历状态：四项都必须落在合理区间才算绿（PRD §4.2） */
+  var RANGE = { low: 0.90, high: 1.10, over: 1.20 };
+
   function statusOf(state, key) {
     var day = state.days[key];
     if (isEmptyDay(day)) return 'empty';
     var t = dayTotals(day);
     if (!t.kcal) return 'empty';
-    var r = t.kcal / targetKcal(state.plan, day);
-    if (r <= 1.05) return 'good';
-    if (r <= 1.15) return 'warm';
-    return 'over';
+    var g = targets(state.plan, day);
+    var pairs = [
+      [t.kcal, g.kcal], [t.carbs, g.macros.carbs],
+      [t.protein, g.macros.protein], [t.fat, g.macros.fat]
+    ];
+    var ratios = pairs.map(function (x) { return x[1] > 0 ? x[0] / x[1] : 1; });
+    var over = ratios.some(function (r) { return r > RANGE.over; });
+    if (over) return 'over';
+    var allIn = ratios.every(function (r) { return r >= RANGE.low && r <= RANGE.high; });
+    if (allIn) return 'good';
+    return 'warm';   /* 有一项没达标（偏低或略偏高） */
   }
 
   /* ---------- 趋势 ---------- */
@@ -426,7 +436,7 @@
   }
 
   global.Store = {
-    KEY: KEY, MEALS: MEALS, ACTIVITIES: ACTIVITIES, RANGES: RANGES, FACTOR: FACTOR,
+    KEY: KEY, MEALS: MEALS, ACTIVITIES: ACTIVITIES, RANGES: RANGES, FACTOR: FACTOR, RANGE: RANGE,
     defaultPlan: defaultPlan, newDay: newDay, newMeal: newMeal, emptyState: emptyState,
     load: load, save: save, normalize: normalize, migrateV1: migrateV1, migrateV2: migrateV2,
     toKey: toKey, parseKey: parseKey, todayKey: todayKey, addDays: addDays, dayLabel: dayLabel, weekStart: weekStart, monthKey: monthKey,

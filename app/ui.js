@@ -98,7 +98,8 @@
 
     return '<div class="page today">' +
       '<div class="head">' +
-        '<div><h1>今天</h1><div class="sub">' + S.dayLabel(cursor) + (isToday ? '' : ' · 非今天') + '</div></div>' +
+        '<div><h1>今天<button class="refresh" data-act="reload" title="刷新">↻</button></h1>' +
+        '<div class="sub">' + S.dayLabel(cursor) + (isToday ? '' : ' · 非今天') + '</div></div>' +
         '<div class="right">' +
           '<button class="pill ' + (day.train ? 'on' : 'rest') + '" data-act="toggle-train">' + (day.train ? '力训日' : '休息日') + '</button>' +
         '</div>' +
@@ -107,7 +108,7 @@
       '<section class="card energy">' +
         '<div class="energy-top">' +
           '<div class="num">' + n0(t.kcal) + '<i>/</i><span class="unit">目标 ' + n0(tg.kcal) + ' 大卡</span></div>' +
-          '<span class="chip">' + (state.plan.direction === 'bulk' ? '增肌' : '减脂') + '</span>' +
+          '<button class="chip tap" data-act="toggle-dir">' + (state.plan.direction === 'bulk' ? '增肌 ⇄' : '减脂 ⇄') + '</button>' +
         '</div>' +
         '<div class="rings">' +
           ring('蛋白 (g)', t.protein, m.protein, 'var(--orange)') +
@@ -115,9 +116,7 @@
           ring('脂肪 (g)', t.fat, m.fat, 'var(--red)') +
           ring('饮水 (ml)', t.water, tg.water, 'var(--teal)', 'data-act="water"') +
         '</div>' +
-      '</section>' +
-
-      '<section class="card tight quick-card">' +
+        '<div class="quick-sep"></div>' +
         '<div class="quick">' +
           quick('breakfast', ICON.coffee, '早饭') +
           quick('pre', ICON.bolt, '练前') +
@@ -243,7 +242,7 @@
           '<div class="dw">一</div><div class="dw">二</div><div class="dw">三</div><div class="dw">四</div><div class="dw">五</div><div class="dw">六</div><div class="dw">日</div>' +
           cells +
         '</div>' +
-        '<div class="hint">绿点达标 · 橙点略超 · 红点超较多 · 灰底 = 力训日</div>' +
+        '<div class="hint">绿点 四项全达标 · 黄点 有一项没达标 · 红点 超出太多 · 灰底 = 力训日</div>' +
       '</section>' +
 
       '<section class="card">' +
@@ -597,6 +596,12 @@
     switch (act) {
       case 'close': closeSheet(); break;
       case 'toggle-train': day.train = !day.train; persist(); break;
+      case 'reload': location.reload(); break;
+      case 'toggle-dir': {
+        state.plan.direction = state.plan.direction === 'bulk' ? 'cut' : 'bulk';
+        persist();
+        break;
+      }
       case 'range': range = el.dataset.range; render(); break;
       case 'meal': openMeal(el.dataset.meal); break;
       case 'workout': openWorkout(); break;

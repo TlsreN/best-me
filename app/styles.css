@@ -58,6 +58,15 @@ body {
 
 /* ---------- 按钮 ---------- */
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.refresh {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #E9E9EC; color: #5B5B60;
+  font-size: 13px; line-height: 1; margin-left: 8px;
+  display: inline-grid; place-items: center; vertical-align: 4px;
+}
+.refresh:active { background: #DEDEE3; }
+.chip.tap:active { transform: scale(.96); }
+
 .pill { background: #fff; border-radius: 13px; padding: 7px 13px; font-size: 12px; font-weight: 600; color: #3C3C41; box-shadow: var(--shadow); }
 .pill.on { background: var(--accent-bg); color: var(--accent); }
 .pill.rest { background: #EDEDF0; color: var(--muted); }
@@ -83,6 +92,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .ring-item.over .val { color: var(--red); }
 
 /* ---------- 快捷输入 ---------- */
+.quick-sep { height: 1px; background: #F0F0F3; margin: 14px -16px 12px; }
 .quick { display: grid; grid-template-columns: repeat(6, 1fr); }
 .q { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .qi { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--soft); }
@@ -103,7 +113,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cr-top .v { font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
 .cr-top .v small { font-size: 10.5px; color: var(--muted); font-weight: 500; margin-left: 2px; }
 .cr-top .d { font-size: 10.5px; color: var(--muted); margin-left: 6px; }
-.plot { height: 70px; background: #FAFAFB; border-radius: 12px; padding: 6px 8px; }
+.plot { height: 64px; background: #FAFAFB; border-radius: 12px; padding: 6px 8px; }
 .plot svg { width: 100%; height: 100%; display: block; }
 .empty-mini { font-size: 11px; color: #B4B4BA; text-align: center; line-height: 46px; }
 
@@ -115,10 +125,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cal .d.today { background: #EDF7F4; color: var(--accent); font-weight: 650; }
 .cal .d.sel { border-color: var(--accent); }
 .cal .d.train { background: #F6F7F9; }
-.cal .d .dot { width: 4px; height: 4px; border-radius: 50%; background: #DCDCE0; }
+.cal .d .dot { width: 5px; height: 5px; border-radius: 50%; background: #DCDCE0; }
 .cal .d.good .dot { background: #2F855A; }
-.cal .d.warm .dot { background: #C2861F; }
-.cal .d.over .dot { background: #B3423A; }
+.cal .d.warm .dot { background: #E2F51A; box-shadow: 0 0 0 1px rgba(0, 0, 0, .10); }
+.cal .d.over .dot { background: #D2362B; }
 
 /* ---------- 达标条 ---------- */
 .daybar { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
@@ -219,14 +229,13 @@ input[type=number] { font-variant-numeric: tabular-nums; }
   .app { max-width: 1000px; }
   .page.today {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
-    grid-template-areas: "head head" "energy quick" "trend trend";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "head head" "energy trend";
     gap: 14px;
     align-items: start;
   }
   .page.today .head { grid-area: head; }
   .page.today .energy { grid-area: energy; }
-  .page.today .quick-card { grid-area: quick; align-self: start; }
   .page.today .trend { grid-area: trend; }
-  .page.today .plot { height: 84px; }
+  .page.today .plot { height: 76px; }
 }
