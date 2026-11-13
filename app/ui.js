@@ -512,10 +512,13 @@
 
   function openAbout() {
     var days = Object.keys(state.days).filter(function (k) { return !S.isEmptyDay(state.days[k]); }).length;
+    var healthDays = Object.keys(state.days).filter(function (k) { return !!state.days[k].health; }).length;
+    var lastHealth = Object.keys(state.days).filter(function (k) { return !!state.days[k].health; }).sort().pop();
     openSheet('关于', '' +
       '<div class="rows">' +
         '<div class="row"><span class="k">版本</span><span class="v">v0.7.0</span></div>' +
         '<div class="row"><span class="k">有记录的天数</span><span class="v">' + days + ' 天</span></div>' +
+        '<div class="row"><span class="k">健康数据</span><span class="v">' + (healthDays ? healthDays + ' 天 · 最近 ' + (lastHealth || '--') : '未导入') + '</span></div>' +
         '<div class="row"><span class="k">方案</span><span class="v">' + (state.plan.direction === 'bulk' ? '增肌' : '减脂') + ' · 午饭前练</span></div>' +
       '</div>' +
       '<div class="hint">按顿记营养、按总运动量记训练。计算口径与《健身饮食.xlsx》表 11 一致。</div>');
