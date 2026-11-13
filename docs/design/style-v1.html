@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>最好的我 · 风格稿 v1</title>
+<style>
+  :root{
+    --bg:#F1F1F3; --card:#FFFFFF; --ink:#0A0A0B; --muted:#8B8B90; --line:#ECECEF;
+    --orange:#E9A13B; --blue:#5B8DEF; --red:#E2605C; --teal:#33BFC4;
+    --radius:24px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{
+    background:#DADADD; padding:28px 24px 36px;
+    font:15px/1.45 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+  }
+  .board{display:flex;gap:26px;justify-content:center;align-items:flex-start}
+  .col{display:flex;flex-direction:column;gap:12px}
+  .cap{font-size:13px;color:#5B5B60;font-weight:600;letter-spacing:.4px;padding-left:6px}
+  .cap span{color:#9A9AA0;font-weight:400}
+
+  .device{
+    width:420px;height:940px;background:var(--bg);border-radius:44px;
+    box-shadow:0 24px 60px rgba(0,0,0,.18), 0 0 0 10px #111;
+    overflow:hidden;position:relative;
+  }
+  .screen{height:100%;display:flex;flex-direction:column;overflow:hidden}
+  .scroll{flex:1;overflow:hidden;padding:22px 20px 0;display:flex;flex-direction:column;gap:14px}
+
+  .head{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 2px}
+  .head h1{font-size:26px;font-weight:700;letter-spacing:-.4px}
+  .head .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .datepill{background:#fff;border-radius:14px;padding:7px 12px;font-size:12px;color:var(--muted)}
+  .close{width:40px;height:40px;border-radius:50%;background:#E3E3E6;display:grid;place-items:center;font-size:16px;color:#5B5B60}
+
+  .card{background:var(--card);border-radius:var(--radius);padding:18px 18px 16px;flex:none}
+  .card-t{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .card-t b{font-size:15px;font-weight:650}
+  .card-t .more{font-size:12px;color:var(--muted)}
+
+  .energy-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+  .energy-top .num{font-size:34px;font-weight:700;letter-spacing:-1px}
+  .energy-top .num i{font-style:normal;color:#D2D2D6;font-weight:600;margin:0 6px}
+  .energy-top .unit{font-size:13px;color:var(--muted);font-weight:500}
+  .chip{background:#EAF6F2;color:#1F8A6B;font-size:11px;font-weight:600;padding:4px 9px;border-radius:9px}
+
+  .rings{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:14px}
+  .ring-item{display:flex;flex-direction:column;align-items:center;gap:9px}
+  .ring{width:76px;height:76px;position:relative}
+  .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring .track{fill:none;stroke-width:7;opacity:.16}
+  .ring .arc{fill:none;stroke-width:7;stroke-linecap:round}
+  .ring .dot{stroke:none}
+  .ring .val{position:absolute;inset:0;display:grid;place-items:center;font-size:19px;font-weight:700}
+  .ring-l{font-size:12px;color:#3C3C41;font-weight:500;text-align:center}
+  .ring-p{font-size:11px;color:var(--muted);text-align:center;margin-top:1px}
+
+  .quick{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+  .q{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:0;font:inherit;color:inherit}
+  .qi{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:#F4F4F6}
+  .qi svg{width:22px;height:22px;stroke:#26262A;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .q em{font-style:normal;font-size:11.5px;color:#3C3C41}
+
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal .dw{font-size:10px;color:var(--muted);text-align:center;padding-bottom:2px}
+  .cal .d{height:36px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:#3C3C41;gap:2px}
+  .cal .d.out{color:#C9C9CE}
+  .cal .d.today{background:#EDF7F4;color:#1F8A6B;font-weight:650}
+  .cal .d .dot{width:4px;height:4px;border-radius:50%;background:#DCDCE0}
+  .cal .d.today .dot{background:#1F8A6B}
+
+  .minis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .mini{background:#FAFAFB;border-radius:16px;padding:12px}
+  .mini .t{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+  .mini .v{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .mini .v small{font-size:11px;color:var(--muted);font-weight:500;margin-left:3px}
+  .mini .line{height:30px;margin-top:6px}
+  .mini .line svg{width:100%;height:100%}
+
+  .conv{display:flex;align-items:center;gap:10px}
+  .conv .box{flex:1;background:#F7F7F9;border-radius:16px;padding:12px 14px}
+  .conv .box .lb{font-size:11px;color:var(--muted)}
+  .conv .box .nb{font-size:24px;font-weight:700;margin-top:2px}
+  .conv .box .nb small{font-size:12px;color:var(--muted);font-weight:500;margin-left:4px}
+  .conv .eq{font-size:12px;color:var(--muted)}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:right;font-weight:500;color:var(--muted);font-size:11px;padding:0 0 8px}
+  th:first-child{text-align:left}
+  td{text-align:right;padding:9px 0;border-top:1px solid var(--line);color:#3C3C41}
+  td:first-child{text-align:left;color:var(--ink)}
+
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);font-size:13.5px}
+  .row:first-child{border-top:0;padding-top:0}
+  .row .k{color:#3C3C41}
+  .row .v{color:var(--muted)}
+  .row .v b{color:var(--ink);font-weight:650}
+
+  .seg{display:flex;gap:6px;background:#F4F4F6;padding:4px;border-radius:14px}
+  .seg span{flex:1;text-align:center;padding:8px;border-radius:11px;font-size:13px;color:var(--muted)}
+  .seg span.on{background:#fff;color:var(--ink);font-weight:650;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:10px}
+
+  .tabs{flex:none;display:grid;grid-template-columns:repeat(3,1fr);padding:10px 6px 18px;border-top:1px solid var(--line);background:var(--bg)}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;color:var(--muted)}
+  .tab svg{width:20px;height:20px;stroke:#8B8B90;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .tab.on{color:#0A0A0B;font-weight:600}
+  .tab.on svg{stroke:#0A0A0B}
+</style>
+</head>
+<body>
+
+<div class="board">
+
+  <!-- ① 首页 -->
+  <div class="col">
+    <div class="cap">① 首页 <span>· 一屏看完今天</span></div>
+    <div class="device">
+      <div class="screen">
+        <div class="scroll">
+          <div class="head">
+            <div>
+              <h1>今天</h1>
+              <div class="sub">11 月 13 日 · 力训日</div>
+            </div>
+            <div class="datepill">‹ 今天 ›</div>
+          </div>
+
+          <div class="card">
+            <div class="energy-top">
+              <div class="num">0<i>/</i><span class="unit">目标 -- 大卡</span></div>
+              <span class="chip">增肌</span>
+            </div>
+
+            <div class="rings">
+              <div class="ring-item">
+                <div class="ring">
+                  <svg viewBox="0 0 100 100">
+                    <circle class="track" cx="50" cy="50" r="42" stroke="#E9A13B"/>
+                    <circle class="arc" cx="50" cy="50" r="42" stroke="#E9A13B" stroke-dasharray="0 264"/>
+                    <circle class="dot" cx="50" cy="8" r="4" fill="#E9A13B"/>
+                  </svg>
+                  <div class="val">0</div>
+                </div>
+                <div>
+                  <div class="ring-l">蛋白 (g)</div>
+                  <div class="ring-p">0 / --</div>
+                </div>
+              </div>
+
+              <div class="ring-item">
+                <div class="ring">
+                  <svg viewBox="0 0 100 100">
+                    <circle class="track" cx="50" cy="50" r="42" stroke="#5B8DEF"/>
+                    <circle class="arc" cx="50" cy="50" r="42" stroke="#5B8DEF" stroke-dasharray="0 264"/>
+                    <circle class="dot" cx="50" cy="8" r="4" fill="#5B8DEF"/>
+                  </svg>
+                  <div class="val">0</div>
+                </div>
+                <div>
+                  <div class="ring-l">碳水 (g)</div>
+                  <div class="ring-p">0 / --</div>
+                </div>
+              </div>
+
+              <div class="ring-item">
+                <div class="ring">
+                  <svg viewBox="0 0 100 100">
+                    <circle class="track" cx="50" cy="50" r="42" stroke="#E2605C"/>
+                    <circle class="arc" cx="50" cy="50" r="42" stroke="#E2605C" stroke-dasharray="0 264"/>
+                    <circle class="dot" cx="50" cy="8" r="4" fill="#E2605C"/>
+                  </svg>
+                  <div class="val">0</div>
+                </div>
+                <div>
+                  <div class="ring-l">脂肪 (g)</div>
+                  <div class="ring-p">0 / --</div>
+                </div>
+              </div>
+
+              <div class="ring-item">
+                <div class="ring">
+                  <svg viewBox="0 0 100 100">
+                    <circle class="track" cx="50" cy="50" r="42" stroke="#33BFC4"/>
+                    <circle class="arc" cx="50" cy="50" r="42" stroke="#33BFC4" stroke-dasharray="0 264"/>
+                    <circle class="dot" cx="50" cy="8" r="4" fill="#33BFC4"/>
+                  </svg>
+                  <div class="val">0</div>
+                </div>
+                <div>
+                  <div class="ring-l">饮水 (ml)</div>
+                  <div class="ring-p">0 / --</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="quick">
+              <button class="q"><span class="qi">
+                <svg viewBox="0 0 24 24"><path d="M5 8h11v6a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V8z"/><path d="M16 9h2a2.5 2.5 0 0 1 0 5h-2"/><path d="M8 5V3M11 5V3"/></svg>
+              </span><em>早饭</em></button>
+
+              <button class="q"><span class="qi">
+                <svg viewBox="0 0 24 24"><path d="M13 2 6 13h5l-1 9 7-11h-5l1-9z"/></svg>
+              </span><em>练前</em></button>
+
+              <button class="q"><span class="qi">
+                <svg viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 7c0-1.6 1.2-2.6 2.6-2.6"/></svg>
+              </span><em>午饭</em></button>
+
+              <button class="q"><span class="qi">
+                <svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+              </span><em>晚饭</em></button>
+
+              <button class="q"><span class="qi">
+                <svg viewBox="0 0 24 24"><path d="M7 8v8M17 8v8M4 10.5v3M20 10.5v3M7 12h10"/></svg>
+              </span><em>训练</em></button>
+
+              <button class="q"><span class="qi">
+                <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12a3.5 3.5 0 0 1 7 0"/><path d="M12 12V9"/></svg>
+              </span><em>体重</em></button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>日历</b><span class="more">11 月 ›</span></div>
+            <div class="cal">
+              <div class="dw">一</div><div class="dw">二</div><div class="dw">三</div><div class="dw">四</div><div class="dw">五</div><div class="dw">六</div><div class="dw">日</div>
+              <div class="d out">27</div><div class="d out">28</div><div class="d out">29</div><div class="d out">30</div><div class="d out">31</div><div class="d">1</div><div class="d">2</div>
+              <div class="d">3</div><div class="d">4</div><div class="d">5</div><div class="d">6</div><div class="d">7</div><div class="d">8</div><div class="d">9</div>
+              <div class="d">10</div><div class="d">11</div><div class="d">12</div><div class="d today">13<i class="dot"></i></div><div class="d">14</div><div class="d">15</div><div class="d">16</div>
+              <div class="d">17</div><div class="d">18</div><div class="d">19</div><div class="d">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div>
+              <div class="d">24</div><div class="d">25</div><div class="d">26</div><div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>趋势</b><span class="more">详情 ›</span></div>
+            <div class="minis">
+              <div class="mini">
+                <div class="t">体重 · 7 日均线</div>
+                <div class="v">--<small>kg</small></div>
+                <div class="line">
+                  <svg viewBox="0 0 120 34" preserveAspectRatio="none">
+                    <line x1="0" y1="17" x2="120" y2="17" stroke="#E4E4E8" stroke-width="1" stroke-dasharray="3 3"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="mini">
+                <div class="t">本周训练容量</div>
+                <div class="v">--<small>kg</small></div>
+                <div class="line">
+                  <svg viewBox="0 0 120 34" preserveAspectRatio="none">
+                    <line x1="0" y1="17" x2="120" y2="17" stroke="#E4E4E8" stroke-width="1" stroke-dasharray="3 3"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab on"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/></svg>今天</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h16v13H4zM8 3v4M16 3v4M4 10h16"/></svg>数据</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>身体</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 数据 -->
+  <div class="col">
+    <div class="cap">② 数据 <span>· 换算与速查</span></div>
+    <div class="device">
+      <div class="screen">
+        <div class="scroll">
+          <div class="head">
+            <div><h1>数据</h1><div class="sub">换算 · 速查 · 细节</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>能量换算</b><span class="more">1 kcal = 4.184 kJ</span></div>
+            <div class="conv">
+              <div class="box">
+                <div class="lb">千卡 kcal</div>
+                <div class="nb">--<small>kcal</small></div>
+              </div>
+              <div class="eq">=</div>
+              <div class="box">
+                <div class="lb">千焦 kJ</div>
+                <div class="nb">--<small>kJ</small></div>
+              </div>
+            </div>
+            <div class="hint">输入任一侧，另一侧自动换算。包装上标的多是千焦，国内习惯说大卡。</div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>食物速查</b><span class="more">每 100 g</span></div>
+            <table>
+              <tr><th>食物</th><th>碳水</th><th>蛋白</th><th>脂肪</th><th>千卡</th></tr>
+              <tr><td>熟米饭</td><td>--</td><td>--</td><td>--</td><td>--</td></tr>
+              <tr><td>鸡胸肉</td><td>--</td><td>--</td><td>--</td><td>--</td></tr>
+              <tr><td>鸡蛋</td><td>--</td><td>--</td><td>--</td><td>--</td></tr>
+              <tr><td>全脂牛奶</td><td>--</td><td>--</td><td>--</td><td>--</td></tr>
+            </table>
+            <div class="hint">点任意一行可加入今天的某一餐。</div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>有氧消耗</b><span class="more">每 kg 每小时</span></div>
+            <div class="rows">
+              <div class="row"><span class="k">平地走</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">爬坡走 5°</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">跑步 8 km/h</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">通勤骑行</span><span class="v"><b>--</b> kcal</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>今日细节</b><span class="more">首页没放的</span></div>
+            <div class="rows">
+              <div class="row"><span class="k">微量营养素合计</span><span class="v">--</span></div>
+              <div class="row"><span class="k">训练容量</span><span class="v">-- kg</span></div>
+              <div class="row"><span class="k">有氧消耗</span><span class="v">-- kcal</span></div>
+              <div class="row"><span class="k">剩余可吃</span><span class="v">-- kcal</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/></svg>今天</div>
+          <div class="tab on"><svg viewBox="0 0 24 24"><path d="M4 6h16v13H4zM8 3v4M16 3v4M4 10h16"/></svg>数据</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>身体</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 身体 -->
+  <div class="col">
+    <div class="cap">③ 身体 <span>· 档案与计划</span></div>
+    <div class="device">
+      <div class="screen">
+        <div class="scroll">
+          <div class="head">
+            <div><h1>身体</h1><div class="sub">档案 · 代谢 · 目标</div></div>
+            <div class="close">✎</div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>身体档案</b><span class="more">编辑</span></div>
+            <div class="rows">
+              <div class="row"><span class="k">身高</span><span class="v"><b>--</b> cm</span></div>
+              <div class="row"><span class="k">年龄</span><span class="v"><b>--</b> 岁</span></div>
+              <div class="row"><span class="k">性别</span><span class="v">--</span></div>
+              <div class="row"><span class="k">当前体重</span><span class="v"><b>--</b> kg</span></div>
+              <div class="row"><span class="k">体脂</span><span class="v"><b>--</b> %</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>代谢</b><span class="more">自动算</span></div>
+            <div class="rows">
+              <div class="row"><span class="k">基础代谢</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">无运动消耗</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">力训日平衡</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">休息日平衡</span><span class="v"><b>--</b> kcal</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>方向</b><span class="more">决定每日目标</span></div>
+            <div class="seg"><span class="on">增肌</span><span>减脂</span></div>
+            <div class="rows" style="margin-top:14px">
+              <div class="row"><span class="k">力训日应吃</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">休息日应吃</span><span class="v"><b>--</b> kcal</span></div>
+              <div class="row"><span class="k">碳水 / 蛋白 / 脂肪</span><span class="v">-- g</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-t"><b>体重记录</b><span class="more">全部 ›</span></div>
+            <div class="rows">
+              <div class="row"><span class="k">--</span><span class="v">-- kg</span></div>
+              <div class="row"><span class="k">--</span><span class="v">-- kg</span></div>
+              <div class="row"><span class="k">--</span><span class="v">-- kg</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/></svg>今天</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h16v13H4zM8 3v4M16 3v4M4 10h16"/></svg>数据</div>
+          <div class="tab on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>身体</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
