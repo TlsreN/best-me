@@ -36,6 +36,8 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 | [v0.2.0](versions/v0.2.0/总结.md) | 2026-11-13 | 输入落地：读取 Excel、双方向方案、无 Mac 技术路线、工作区分类 |
 | [v0.3.0](versions/v0.3.0/总结.md) | 2026-11-13 | 首个可用版本：记录 + 日历 + 趋势 + 方案，计算与 Excel 逐项对齐 |
 | [v0.3.1](versions/v0.3.1/总结.md) | 2026-11-13 | PRD 定稿 + 建立 Git 仓库 |
+| [v0.4.0](versions/v0.4.0/总结.md) | 2026-11-13 | 真机测试通道（局域网 + 公网隧道） |
+| [v0.4.1](versions/v0.4.1/总结.md) | 2026-11-13 | 顶栏一键备份，开始记录真实数据 |
 
 ## 关键文档
 
