@@ -35,9 +35,11 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 | [v0.1.0](versions/v0.1.0/总结.md) | 2026-11-13 | 立项：需求归档 + 开工前准备清单 |
 | [v0.2.0](versions/v0.2.0/总结.md) | 2026-11-13 | 输入落地：读取 Excel、双方向方案、无 Mac 技术路线、工作区分类 |
 | [v0.3.0](versions/v0.3.0/总结.md) | 2026-11-13 | 首个可用版本：记录 + 日历 + 趋势 + 方案，计算与 Excel 逐项对齐 |
+| [v0.3.1](versions/v0.3.1/总结.md) | 2026-11-13 | PRD 定稿 + 建立 Git 仓库 |
 
 ## 关键文档
 
+- [docs/05-PRD.md](docs/05-PRD.md) ← 先看这个
 - [docs/01-数据模型与功能范围.md](docs/01-数据模型与功能范围.md)
 - [docs/02-技术路线与限制.md](docs/02-技术路线与限制.md)
 - [docs/03-饮食方案（午饭前练·增肌与减脂）.md](docs/03-饮食方案（午饭前练·增肌与减脂）.md)
@@ -57,3 +59,19 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 - 只有 iPhone + iPad，没有 Mac → 原生 iOS 无法本地编译，HealthKit 用不了
 - 数据存浏览器本地，长期不用可能被系统清理 → 每周导出一次 JSON
 - 需要部署到 https 才能稳定「添加到主屏幕」（本地 `http://` 也行，但离线缓存需 https 或 localhost）
+
+## 版本控制
+
+已建立本地 Git 仓库，分支 `main`。
+
+```powershell
+git add -A
+git commit -m "vX.Y.Z 一句话说明改了什么"
+git log --oneline          # 看历史
+git checkout -- app/ui.js  # 改坏了，丢弃未提交的改动
+```
+
+- `versions/` 记「为什么这么改」，Git 记「文件当时长什么样」，两者分工不重叠
+- `reference/*.xlsx` 不入库（58 MB，内容已解析成文本）；要连原表备份，注释掉 `.gitignore` 里那行
+- 尚未推送远程。日后接 GitHub Pages 时再加 remote，届时需要把提交身份改成你 GitHub 账号的邮箱
+
