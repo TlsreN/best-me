@@ -50,7 +50,8 @@
       train: true, weightKg: null, bodyFatPct: null, waterMl: 0,
       meals: {},
       lift: null,
-      cardio: null
+      cardio: null,
+      health: null
     };
   }
 
@@ -318,6 +319,42 @@
     return { schemaVersion: 3, plan: p, days: days, lastBackupAt: s.lastBackupAt || null };
   }
 
+
+  /* ---------- 健康数据导入（快捷指令导出的文本） ---------- */
+  function parseHealth(text) {
+    var rows = [];
+    String(text || '').split(/\r?\n/).forEach(function (line) {
+      line = line.trim();
+      if (!line || /^date/i.test(line) || line.charAt(0) === '#') return;
+      var p = line.split(',');
+      var d = (p[0] || '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || p.length < 3) return;
+      rows.push({
+        date: d, active: nz(p[1]), resting: nz(p[2]), steps: nz(p[3]), workoutMin: nz(p[4])
+      });
+    });
+    return rows;
+  }
+
+  function applyHealth(state, rows) {
+    var n = 0;
+    rows.forEach(function (r) {
+      if (!state.days[r.date]) state.days[r.date] = newDay();
+      state.days[r.date].health = {
+        active: r.active, resting: r.resting, steps: r.steps, workoutMin: r.workoutMin
+      };
+      n++;
+    });
+    return n;
+  }
+
+  /* 某天总消耗：有健康数据用健康的，没有就用估算 */
+  function burnTotalOf(day, plan) {
+    if (day && day.health && (day.health.active || day.health.resting)) {
+      return { total: Math.round(nz(day.health.active) + nz(day.health.resting)), source: 'health' };
+    }
+    return { total: Math.round(noExerciseKcal(plan) + burnOf(day, plan).total), source: 'estimate' };
+  }
   /* ---------- 存取 ---------- */
   var mem = null;
   function hasLS() { try { return typeof localStorage !== 'undefined' && localStorage !== null; } catch (e) { return false; } }
@@ -371,6 +408,7 @@
     bmr: bmr, noExerciseKcal: noExerciseKcal, burnOf: burnOf, balanceKcal: balanceKcal,
     factor: factor, targetKcal: targetKcal, macros: macros, targets: targets,
     mealKcal: mealKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
-    ma7: ma7, trend: trend, toCsv: toCsv, r1: r1
+    ma7: ma7, trend: trend, toCsv: toCsv, r1: r1,
+    parseHealth: parseHealth, applyHealth: applyHealth, burnTotalOf: burnTotalOf
   };
 })(typeof window !== 'undefined' ? window : globalThis);

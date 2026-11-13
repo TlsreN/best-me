@@ -22,7 +22,12 @@
   (function () {
     var mode = location.hash.replace('#', '') || 'today';
     var S = window.Store;
-    window.ZGHDBug.setState(S.normalize(window.SEED));
+    var seed = S.normalize(window.SEED);
+    for (var i = 0; i < 3; i++) {
+      var kk = S.addDays(S.todayKey(), -i);
+      if (seed.days[kk]) seed.days[kk].health = { active: 430 - i * 20, resting: 1490, steps: 8400 - i * 300, workoutMin: 35 };
+    }
+    window.ZGHDBug.setState(seed);
 
     if (mode === 'meal') { window.ZGHDBug.go('today', S.todayKey()); document.querySelector('[data-act="meal"][data-meal="lunch"]').click(); }
     else if (mode === 'workout') { window.ZGHDBug.go('today', S.todayKey()); document.querySelector('[data-act="workout"]').click(); }

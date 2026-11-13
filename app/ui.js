@@ -208,6 +208,20 @@
         '<span class="v">' + n0(b[1]) + ' / ' + n0(b[2]) + '</span></div>';
     }).join('');
 
+    var burnInfo = S.burnTotalOf(sel, state.plan);
+    var balance = Math.round(selT.kcal - burnInfo.total);
+    var burnCardHtml = '<section class="card">' +
+      '<div class="card-t"><b>消耗与结余</b><span class="more">' + (burnInfo.source === 'health' ? '来自健康' : '按方案估算') + '</span></div>' +
+      '<div class="rows">' +
+        '<div class="row"><span class="k">摄入</span><span class="v"><b>' + n0(selT.kcal) + '</b> kcal</span></div>' +
+        '<div class="row"><span class="k">消耗</span><span class="v"><b>' + n0(burnInfo.total) + '</b> kcal</span></div>' +
+        '<div class="row"><span class="k">结余</span><span class="v"><b>' + (balance >= 0 ? '+' : '') + n0(balance) + '</b> kcal</span></div>' +
+      '</div>' +
+      (sel && sel.health
+        ? '<div class="hint">活动 ' + n0(sel.health.active) + ' · 静息 ' + n0(sel.health.resting) + ' · 步数 ' + n0(sel.health.steps) + ' · 运动 ' + n0(sel.health.workoutMin) + ' 分钟</div>'
+        : '<div class="hint">这一天还没有健康数据。去「身体 → 设置 → 健康数据导入」。</div>') +
+      '</section>';
+
     var mealRows = S.MEALS.map(function (m) {
       var x = sel && sel.meals && sel.meals[m.id];
       var kc = S.mealKcal(x);
@@ -238,6 +252,7 @@
         bars +
       '</section>' +
 
+      burnCardHtml +
       '<section class="card">' +
         '<div class="card-t"><b>' + S.dayLabel(selDate) + ' · 吃了什么</b></div>' +
         '<div class="rows">' + mealRows + '</div>' +
@@ -296,6 +311,7 @@
         '<div class="card-t"><b>设置</b></div>' +
         '<div class="rows">' +
           '<div class="row tap" data-act="plan"><span class="k">训练与饮食方案</span><span class="v">' + (p.direction === 'bulk' ? '增肌' : '减脂') + ' <span class="go">›</span></span></div>' +
+          '<div class="row tap" data-act="health"><span class="k">健康数据导入</span><span class="v">' + (hasHealth() ? '已导入' : '未导入') + ' <span class="go">›</span></span></div>' +
           '<div class="row tap" data-act="backup"><span class="k">数据备份与恢复</span><span class="v">' + backupLabel() + ' <span class="go">›</span></span></div>' +
           '<div class="row tap" data-act="about"><span class="k">关于</span><span class="v">v0.7.0 <span class="go">›</span></span></div>' +
         '</div>' +
@@ -457,6 +473,32 @@
   }
 
   /* ---- 备份 / 关于 ---- */
+
+  function hasHealth() {
+    return Object.keys(state.days).some(function (k) { return !!state.days[k].health; });
+  }
+
+  function openHealth() {
+    openSheet('健康数据导入', '' +
+      '<div class="fields">' +
+        '<div class="hint">用 iOS「快捷指令」把健康数据导出成一行文本，贴进来或存成文件导入。格式：<br>' +
+        '<code>日期,活动能量,静息能量,步数,运动分钟</code><br>例如 <code>2026-11-13,412,1480,8342,35</code></div>' +
+        '<label class="field">粘贴文本<textarea id="h-text" rows="5" style="font:12px/1.5 ui-monospace,Menlo,monospace" placeholder="2026-11-13,412,1480,8342,35"></textarea></label>' +
+        '<button class="primary" data-act="health-import">导入粘贴的内容</button>' +
+        '<button class="ghost" data-act="health-file">从文件导入</button>' +
+        '<div class="hint">导入后，这一天会用健康的「活动+静息」作为总消耗，替代方案估算。</div>' +
+      '</div>');
+  }
+
+  function importHealthText(text) {
+    var rows = S.parseHealth(text);
+    if (!rows.length) { alert('没认出有效数据，检查格式'); return; }
+    var n = S.applyHealth(state, rows);
+    persist();
+    closeSheet();
+    alert('导入 ' + n + ' 天健康数据');
+  }
+
   function openBackup() {
     openSheet('数据备份与恢复', '' +
       '<div class="fields">' +
@@ -506,6 +548,21 @@
           alert('导入成功：' + Object.keys(state.days).length + ' 天');
         } catch (e) { alert('导入失败：文件格式不对'); }
       };
+      reader.readAsText(file);
+    });
+    input.click();
+  }
+
+
+  function pickHealthFile() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.csv,text/plain';
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () { importHealthText(String(reader.result)); };
       reader.readAsText(file);
     });
     input.click();
@@ -594,6 +651,9 @@
         break;
       }
 
+      case 'health': openHealth(); break;
+      case 'health-import': importHealthText(q('#h-text').value || ''); break;
+      case 'health-file': pickHealthFile(); break;
       case 'backup': openBackup(); break;
       case 'about': openAbout(); break;
 

@@ -160,5 +160,21 @@ stS.days[base].meals.breakfast = { carbs: 0, protein: 0, fat: 0, kcal: 3000 };
 eq('超标状态', S.statusOf(stS, base), 'over');
 eq('空日状态', S.statusOf(stS, '2000-01-01'), 'empty');
 
+
+console.log('== 健康数据导入 ==');
+const hRows = S.parseHealth('date,active,resting,steps,workoutMin\n2026-11-13,412,1480,8342,35\n2026-11-12,380,1470,7000,0\n乱码行\n2026-11-11');
+eq('解析出几天', hRows.length, 2);
+eq('活动能量', hRows[0].active, 412);
+eq('静息能量', hRows[0].resting, 1480);
+const stH = S.emptyState();
+eq('导入天数', S.applyHealth(stH, hRows), 2);
+eq('写入 health', stH.days['2026-11-13'].health.active, 412);
+eq('重复导入不叠加', S.applyHealth(stH, hRows), 2);
+const bt = S.burnTotalOf(stH.days['2026-11-13'], S.defaultPlan());
+eq('有健康数据时总消耗=活动+静息', bt.total, 1892);
+eq('消耗来源', bt.source, 'health');
+eq('无健康数据时用估算', S.burnTotalOf(null, S.defaultPlan()).source, 'estimate');
+eq('估算值 = 无运动消耗', S.burnTotalOf(null, S.defaultPlan()).total, 2211);
+
 console.log(`\n通过 ${pass}，失败 ${fail}`);
 process.exit(fail ? 1 : 0);
