@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>信息架构图 · 三个界面各放什么</title>
+<style>
+  :root{
+    --bg:#EEEEF0; --card:#FFFFFF; --ink:#111114; --muted:#8B8B90; --line:#E8E8EB;
+    --rail:#D6D6DB;
+    --keep:#6E6E75; --keepbg:#F3F3F5; --keepbd:#E2E2E6;
+    --add:#1E7F5C; --addbg:#E8F5EF; --addbd:#BFE3D3;
+    --cut:#B3423A; --cutbg:#FBEDEC; --cutbd:#F0C9C5;
+    --tbd:#A5741A; --tbdbg:#FCF3E0; --tbdbd:#EFDCB4;
+    --accent:#0F766E;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);padding:26px 26px 30px;color:var(--ink);
+    font:14px/1.45 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  .top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;padding:0 4px}
+  .top h1{font-size:22px;font-weight:700;letter-spacing:-.3px}
+  .top p{font-size:12px;color:var(--muted);margin-top:3px}
+  .legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+  .rootbar{display:flex;flex-direction:column;align-items:center;margin-bottom:0}
+  .root{background:#111114;color:#fff;font-size:15px;font-weight:650;letter-spacing:.5px;padding:8px 22px;border-radius:12px}
+  .stem{width:2px;height:30px;background:#C9C9D0}
+
+  .cols{display:flex;gap:16px;align-items:stretch;position:relative;padding-top:20px}
+  .cols::before{content:"";position:absolute;top:0;left:12.5%;right:12.5%;height:1.5px;background:#C9C9D0}
+  .colwrap{flex:1;position:relative;display:flex}
+  .colwrap::before{content:"";position:absolute;top:-20px;left:50%;margin-left:-1px;width:2px;height:20px;background:#C9C9D0}
+
+  .page{
+    flex:1;background:var(--card);border-radius:20px;overflow:hidden;
+    box-shadow:0 6px 22px rgba(20,20,25,.06);
+    display:flex;flex-direction:column;
+  }
+  .ph{display:flex;align-items:baseline;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+  .ph b{font-size:16px;font-weight:700;letter-spacing:-.2px}
+  .ph span{font-size:11.5px;color:var(--muted)}
+  .ph .cnt{margin-left:auto;font-size:11px;color:var(--muted)}
+
+  .tree{padding:14px 16px 16px 30px;position:relative}
+  .tree::before{content:"";position:absolute;left:15px;top:14px;bottom:22px;width:2px;background:#C9C9D0;border-radius:2px}
+
+  .node{position:relative;margin-bottom:14px}
+  .node:last-child{margin-bottom:0}
+  .node::before{
+    content:"";position:absolute;left:-14px;top:11px;width:12px;height:1.5px;background:var(--rail);border-radius:2px;
+  }
+  .nt{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:650;margin-bottom:7px}
+  .nt .n{font-size:10.5px;font-weight:500;color:var(--muted);background:var(--keepbg);border-radius:6px;padding:1px 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .c{
+    font-size:12px;padding:4px 9px;border-radius:8px;
+    background:var(--keepbg);color:var(--keep);border:1px solid var(--keepbd);
+  }
+  .c.add{background:var(--addbg);color:var(--add);border-color:var(--addbd)}
+  .c.add::before{content:"+ ";font-weight:700}
+  .c.cut{background:var(--cutbg);color:var(--cut);border-color:var(--cutbd);text-decoration:line-through;text-decoration-thickness:1px}
+  .c.cut::before{content:"− ";text-decoration:none;display:inline-block;font-weight:700}
+  .c.tbd{background:var(--tbdbg);color:var(--tbd);border-color:var(--tbdbd)}
+  .c.tbd::before{content:"? ";font-weight:700}
+
+  .note{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.55}
+
+  .page.sub .ph{background:#FBFBFC}
+  .page.sub{border:1px dashed #D9D9DE;box-shadow:none}
+
+  .foot{margin-top:16px;display:flex;gap:20px;font-size:11.5px;color:var(--muted);padding:0 4px;flex-wrap:wrap}
+  .foot b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div>
+    <h1>三个界面各放什么</h1>
+    <p>大标题 = 一张卡片，小内容 = 卡片里的字段。请直接说要加什么、减什么。</p>
+  </div>
+  <div class="legend">
+    <span><i style="background:#E2E2E6"></i>保留</span>
+    <span><i style="background:#BFE3D3"></i>建议新增</span>
+    <span><i style="background:#F0C9C5"></i>建议删掉</span>
+    <span><i style="background:#EFDCB4"></i>待你定</span>
+  </div>
+</div>
+
+<div class="rootbar">
+  <div class="root">最好的我</div>
+  <div class="stem"></div>
+</div>
+
+<div class="cols">
+
+  <!-- ① 首页 -->
+  <div class="colwrap">
+  <section class="page">
+    <div class="ph"><b>① 首页</b><span>一屏看完今天</span><em class="cnt">5 块</em></div>
+    <div class="tree">
+
+      <div class="node">
+        <div class="nt">顶部条</div>
+        <div class="chips">
+          <span class="c">日期 ‹ 今天 ›</span>
+          <span class="c">力训日 / 休息日</span>
+          <span class="c">增肌 · 减脂</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">能量卡<span class="n">核心</span></div>
+        <div class="chips">
+          <span class="c">今日热量 0 / 2197</span>
+          <span class="c add">剩余可吃 520 kcal</span>
+          <span class="c">蛋白 0 / 120 g</span>
+          <span class="c">碳水 0 / 220 g</span>
+          <span class="c">脂肪 0 / 80 g</span>
+          <span class="c tbd">饮水 0 / 2000 ml</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">快捷输入</div>
+        <div class="chips">
+          <span class="c">早饭</span>
+          <span class="c">练前</span>
+          <span class="c">午饭</span>
+          <span class="c">晚饭</span>
+          <span class="c tbd">加餐</span>
+          <span class="c">训练</span>
+          <span class="c">体重</span>
+        </div>
+        <div class="note">点图标进入对应录入页，录完自动回到这里。</div>
+      </div>
+
+      <div class="node">
+        <div class="nt">日历</div>
+        <div class="chips">
+          <span class="c">本月格子</span>
+          <span class="c">今日高亮</span>
+          <span class="c">达标 / 略超 / 超</span>
+          <span class="c">力训标记</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">趋势</div>
+        <div class="chips">
+          <span class="c">体重 · 7 日均线</span>
+          <span class="c">本周训练容量</span>
+          <span class="c cut">宏量环形图</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  </div>
+
+  <!-- ② 数据 -->
+  <div class="colwrap">
+  <section class="page">
+    <div class="ph"><b>② 数据</b><span>换算与速查</span><em class="cnt">5 块</em></div>
+    <div class="tree">
+
+      <div class="node">
+        <div class="nt">能量换算</div>
+        <div class="chips">
+          <span class="c add">千卡 ↔ 千焦</span>
+          <span class="c add">1 kcal = 4.184 kJ</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">食物速查<span class="n">每 100 g</span></div>
+        <div class="chips">
+          <span class="c add">碳水 / 蛋白 / 脂肪 / 千卡</span>
+          <span class="c add">点一行加入某餐</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">有氧消耗<span class="n">每 kg 每小时</span></div>
+        <div class="chips">
+          <span class="c">平地走 3.8</span>
+          <span class="c">爬坡走 5° 5.5</span>
+          <span class="c">跑步 8 km/h 9.5</span>
+          <span class="c">骑行 3.6</span>
+          <span class="c">游泳 7.7</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">今日细节</div>
+        <div class="chips">
+          <span class="c">微量营养素合计</span>
+          <span class="c">训练容量</span>
+          <span class="c">有氧消耗</span>
+          <span class="c">三餐占比</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">小工具</div>
+        <div class="chips">
+          <span class="c add">换算口诀</span>
+          <span class="c add">本周平均摄入</span>
+          <span class="c tbd">体重变化对比</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  </div>
+
+  <!-- ③ 身体 -->
+  <div class="colwrap">
+  <section class="page">
+    <div class="ph"><b>③ 身体</b><span>档案与计划</span><em class="cnt">5 块</em></div>
+    <div class="tree">
+
+      <div class="node">
+        <div class="nt">身体档案<span class="n">✎ 可改</span></div>
+        <div class="chips">
+          <span class="c">身高</span>
+          <span class="c">年龄</span>
+          <span class="c">性别</span>
+          <span class="c">当前体重</span>
+          <span class="c tbd">体脂</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">代谢<span class="n">自动算</span></div>
+        <div class="chips">
+          <span class="c">基础代谢 BMR</span>
+          <span class="c">无运动消耗</span>
+          <span class="c">力训日平衡</span>
+          <span class="c">休息日平衡</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">方向<span class="n">决定目标</span></div>
+        <div class="chips">
+          <span class="c">增肌 / 减脂</span>
+          <span class="c">力训日应吃</span>
+          <span class="c">休息日应吃</span>
+          <span class="c">碳水 / 蛋白 / 脂肪配额</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">体重记录</div>
+        <div class="chips">
+          <span class="c">最近 7 条</span>
+          <span class="c">全部记录</span>
+          <span class="c">7 日均值</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">数据</div>
+        <div class="chips">
+          <span class="c">备份 JSON</span>
+          <span class="c">导入</span>
+          <span class="c">清空</span>
+          <span class="c cut">CSV 导出</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  </div>
+
+  <!-- 点图标之后 -->
+  <div class="colwrap">
+  <section class="page sub">
+    <div class="ph"><b>二级页</b><span>点图标之后 · 录入与明细</span><em class="cnt">4 块</em></div>
+    <div class="tree">
+
+      <div class="node">
+        <div class="nt">记一餐</div>
+        <div class="chips">
+          <span class="c">食物名（带历史联想）</span>
+          <span class="c">克数</span>
+          <span class="c">碳水 / 蛋白 / 脂肪</span>
+          <span class="c">热量（可空，自动算）</span>
+          <span class="c tbd">微量营养素（折叠）</span>
+        </div>
+        <div class="note">同一个页面往上滑就是这餐已记的条目，可改可删。</div>
+      </div>
+
+      <div class="node">
+        <div class="nt">记训练</div>
+        <div class="chips">
+          <span class="c">动作名</span>
+          <span class="c">组数</span>
+          <span class="c">次数</span>
+          <span class="c">重量</span>
+          <span class="c cut">RPE</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">记有氧</div>
+        <div class="chips">
+          <span class="c">项目</span>
+          <span class="c">时长</span>
+          <span class="c">自动算消耗</span>
+        </div>
+      </div>
+
+      <div class="node">
+        <div class="nt">记体重</div>
+        <div class="chips">
+          <span class="c">数字</span>
+          <span class="c">日期默认今天</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  </div>
+
+</div>
+
+<div class="foot">
+  <span><b>建议新增 6 项</b>：剩余可吃、能量换算、食物速查、点行加入某餐、换算口诀、本周平均</span>
+  <span><b>建议删 3 项</b>：宏量环形图、RPE、CSV 导出按钮</span>
+  <span><b>待定 5 项</b>：饮水环、加餐图标、体脂、微量营养素、体重变化对比</span>
+</div>
+
+</body>
+</html>
