@@ -47,6 +47,8 @@ body {
 }
 .brand h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: .2px; }
 .brand p { margin: 0; font-size: 11px; color: var(--muted); }
+.top-actions { display: flex; gap: 2px; flex: none; }
+.top-actions button { padding: 6px 8px; font-size: 13px; }
 
 /* ---------- layout ---------- */
 .app {

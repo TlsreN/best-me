@@ -15,3 +15,6 @@ desktop.ini
 
 # 隧道二进制，52 MB，用时再下
 tools/bin/
+
+# 临时二维码，指向会变的一次性地址
+docs/img/qr-tunnel.png

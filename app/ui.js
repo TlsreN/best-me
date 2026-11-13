@@ -402,7 +402,7 @@
           '<button data-act="import">导入备份</button>' +
           '<button class="danger" data-act="reset">清空全部</button>' +
         '</div>' +
-        '<div class="note" style="margin-top:10px">数据存在本机。建议每周导出一次 JSON 备份到「文件」App，防止被系统清理。</div>' +
+        '<div class="note" style="margin-top:10px">数据存在本机：' + backupLabel() + '。建议每周点右上角「备份」导出一份 JSON 到「文件」App，防止被系统清理。</div>' +
       '</section>' +
     '</div>';
   }
@@ -569,6 +569,20 @@
   }
   function stamp() { return S.todayKey().replace(/-/g, ''); }
 
+  function backup() {
+    state.lastBackupAt = new Date().toISOString();
+    S.save(state);
+    download('最好的我-备份-' + stamp() + '.json', JSON.stringify(state, null, 2));
+    render();
+  }
+
+  function backupLabel() {
+    if (!state.lastBackupAt) return '还没备份过';
+    var days = Math.floor((Date.now() - new Date(state.lastBackupAt).getTime()) / 86400000);
+    if (days <= 0) return '今天已备份';
+    return days + ' 天前备份';
+  }
+
   function importFile() {
     var input = document.createElement('input');
     input.type = 'file';
@@ -620,7 +634,7 @@
       case 'cal-next': monthAnchor = new Date(monthAnchor.getFullYear(), monthAnchor.getMonth() + 1, 1); render(); break;
       case 'cal-day': cursor = el.dataset.date; view = 'today'; render(); break;
       case 'dir': state.plan.direction = el.dataset.dir; save(); break;
-      case 'export-json': download('最好的我-备份-' + stamp() + '.json', JSON.stringify(state, null, 2)); break;
+      case 'export-json': backup(); break;
       case 'export-csv': download('最好的我-' + stamp() + '.csv', '\ufeff' + S.toCsv(state), 'text/csv'); break;
       case 'import': importFile(); break;
       case 'reset':
@@ -651,6 +665,9 @@
       save();
     }
   });
+
+  var btnBackup = document.getElementById('btn-backup');
+  if (btnBackup) btnBackup.addEventListener('click', backup);
 
   document.getElementById('btn-today').addEventListener('click', function () {
     cursor = S.todayKey();
