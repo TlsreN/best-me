@@ -176,5 +176,10 @@ eq('消耗来源', bt.source, 'health');
 eq('无健康数据时用估算', S.burnTotalOf(null, S.defaultPlan()).source, 'estimate');
 eq('估算值 = 无运动消耗', S.burnTotalOf(null, S.defaultPlan()).total, 2211);
 
+const stOnly = S.emptyState();
+S.applyHealth(stOnly, S.parseHealth('2026-11-14,500,0,9000,0'));
+const btOnly = S.burnTotalOf(stOnly.days['2026-11-14'], S.defaultPlan());
+eq('只导活动能量时用 BMR 补静息', btOnly.total, 500 + Math.round(S.bmr(S.defaultPlan())));
+
 console.log(`\n通过 ${pass}，失败 ${fail}`);
 process.exit(fail ? 1 : 0);

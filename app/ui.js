@@ -485,7 +485,7 @@
         '<code>日期,活动能量,静息能量,步数,运动分钟</code><br>例如 <code>2026-11-13,412,1480,8342,35</code></div>' +
         '<label class="field">粘贴文本<textarea id="h-text" rows="5" style="font:12px/1.5 ui-monospace,Menlo,monospace" placeholder="2026-11-13,412,1480,8342,35"></textarea></label>' +
         '<button class="primary" data-act="health-import">导入粘贴的内容</button>' +
-        '<button class="ghost" data-act="health-file">从文件导入</button>' +
+        '<button class="ghost" data-act="health-file">从文件导入（可多选）</button>' +
         '<div class="hint">导入后，这一天会用健康的「活动+静息」作为总消耗，替代方案估算。</div>' +
       '</div>');
   }
@@ -554,16 +554,25 @@
   }
 
 
+  /* 支持一次选多个文件（每天一个 txt 的情况） */
   function pickHealthFile() {
     var input = document.createElement('input');
     input.type = 'file';
+    input.multiple = true;
     input.accept = '.txt,.csv,text/plain';
     input.addEventListener('change', function () {
-      var file = input.files && input.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function () { importHealthText(String(reader.result)); };
-      reader.readAsText(file);
+      var files = Array.prototype.slice.call(input.files || []);
+      if (!files.length) return;
+      var texts = new Array(files.length);
+      var left = files.length;
+      files.forEach(function (f, i) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          texts[i] = String(reader.result);
+          if (--left === 0) importHealthText(texts.join('\n'));
+        };
+        reader.readAsText(f);
+      });
     });
     input.click();
   }

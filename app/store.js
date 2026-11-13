@@ -351,7 +351,9 @@
   /* 某天总消耗：有健康数据用健康的，没有就用估算 */
   function burnTotalOf(day, plan) {
     if (day && day.health && (day.health.active || day.health.resting)) {
-      return { total: Math.round(nz(day.health.active) + nz(day.health.resting)), source: 'health' };
+      /* 静息没导进来时，用 App 自己算的 BMR 补上 */
+      var resting = nz(day.health.resting) > 0 ? nz(day.health.resting) : bmr(plan);
+      return { total: Math.round(nz(day.health.active) + resting), source: 'health' };
     }
     return { total: Math.round(noExerciseKcal(plan) + burnOf(day, plan).total), source: 'estimate' };
   }
