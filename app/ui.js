@@ -242,7 +242,7 @@
           '<div class="dw">一</div><div class="dw">二</div><div class="dw">三</div><div class="dw">四</div><div class="dw">五</div><div class="dw">六</div><div class="dw">日</div>' +
           cells +
         '</div>' +
-        '<div class="hint">绿点 四项全达标 · 黄点 有一项没达标 · 红点 超出太多 · 灰底 = 力训日</div>' +
+        '<div class="hint">绿点 碳水蛋白都达标 · 黄点 有一项没达标 · 红点 超出太多 · 灰底 = 力训日</div>' +
       '</section>' +
 
       '<section class="card">' +

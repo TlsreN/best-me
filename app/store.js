@@ -148,7 +148,7 @@
     return !hasMeal && !day.lift && !day.cardio && !nz(day.waterMl) && !w;
   }
 
-  /* 日历状态：四项都必须落在合理区间才算绿（PRD §4.2） */
+  /* 日历状态：碳水与蛋白两项都必须落在合理区间才算绿（PRD §4.2） */
   var RANGE = { low: 0.90, high: 1.10, over: 1.20 };
 
   function statusOf(state, key) {
@@ -157,9 +157,10 @@
     var t = dayTotals(day);
     if (!t.kcal) return 'empty';
     var g = targets(state.plan, day);
+    /* 只判碳水与蛋白：热量与脂肪不参与（用户 2026-11-13 定） */
     var pairs = [
-      [t.kcal, g.kcal], [t.carbs, g.macros.carbs],
-      [t.protein, g.macros.protein], [t.fat, g.macros.fat]
+      [t.carbs, g.macros.carbs],
+      [t.protein, g.macros.protein]
     ];
     var ratios = pairs.map(function (x) { return x[1] > 0 ? x[0] / x[1] : 1; });
     var over = ratios.some(function (r) { return r > RANGE.over; });
