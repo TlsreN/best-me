@@ -1,0 +1,14 @@
+# 原始 Excel 不进版本库：58 MB，内容是二进制+图片
+# 表格的文字内容已解析到 reference/excel-解析/*.tsv，可全文检索
+# 若想连原表一起备份，注释掉下面这行再提交即可
+reference/*.xlsx
+
+# 临时文件
+tools/_*
+*.log
+*.tmp
+
+# 系统垃圾
+Thumbs.db
+desktop.ini
+.DS_Store

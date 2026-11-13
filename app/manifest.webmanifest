@@ -1,0 +1,15 @@
+{
+  "name": "最好的我",
+  "short_name": "最好的我",
+  "description": "记录每日饮食、训练与代谢，按增肌/减脂方向调配计划",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f3ef",
+  "theme_color": "#0f766e",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="最好的我">
+<meta name="theme-color" content="#0f766e">
+<title>最好的我</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">我</span>
+      <div>
+        <h1>最好的我</h1>
+        <p id="brand-sub">记录 · 代谢 · 计划</p>
+      </div>
+    </div>
+    <button class="ghost" id="btn-today">回到今天</button>
+  </header>
+
+  <main id="app" class="app"></main>
+
+  <nav class="tabbar">
+    <button class="tab on" data-view="today"><span>今天</span></button>
+    <button class="tab" data-view="calendar"><span>日历</span></button>
+    <button class="tab" data-view="trends"><span>趋势</span></button>
+    <button class="tab" data-view="plan"><span>方案</span></button>
+  </nav>
+
+  <div id="modal-root"></div>
+
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
