@@ -38,10 +38,12 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 | [v0.3.1](versions/v0.3.1/总结.md) | 2026-11-13 | PRD 定稿 + 建立 Git 仓库 |
 | [v0.4.0](versions/v0.4.0/总结.md) | 2026-11-13 | 真机测试通道（局域网 + 公网隧道） |
 | [v0.4.1](versions/v0.4.1/总结.md) | 2026-11-13 | 顶栏一键备份，开始记录真实数据 |
+| [v0.4.2](versions/v0.4.2/总结.md) | 2026-11-13 | 需求收敛成 5 条，列出删减/新增建议 |
 
 ## 关键文档
 
 - [docs/05-PRD.md](docs/05-PRD.md) ← 先看这个
+- [docs/06-需求清单与取舍.md](docs/06-需求清单与取舍.md) ← 需求边界与待拍板项
 - [docs/01-数据模型与功能范围.md](docs/01-数据模型与功能范围.md)
 - [docs/02-技术路线与限制.md](docs/02-技术路线与限制.md)
 - [docs/03-饮食方案（午饭前练·增肌与减脂）.md](docs/03-饮食方案（午饭前练·增肌与减脂）.md)
