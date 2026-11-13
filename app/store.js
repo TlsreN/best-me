@@ -205,17 +205,17 @@
       var thisWeek = weekStart(endKey);
       for (i = RANGES.week - 1; i >= 0; i--) {
         var ws = addDays(thisWeek, -7 * i);
-        var sumW = 0, nW = 0, sumB = 0, hasB = false;
+        var sumW = 0, nW = 0, sumB = 0, nB = 0;
         for (var j = 0; j < 7; j++) {
           k = addDays(ws, j);
           d = state.days[k];
           if (d && d.weightKg !== null && d.weightKg !== undefined && d.weightKg !== '') { sumW += nz(d.weightKg); nW++; }
-          if (d && !isEmptyDay(d)) { sumB += burnOf(d, state.plan).total; hasB = true; }
+          if (d && !isEmptyDay(d)) { sumB += burnOf(d, state.plan).total; nB++; }
         }
         out.push({
           key: ws, label: (parseKey(ws).getMonth() + 1) + '/' + parseKey(ws).getDate(),
           weight: nW ? r1(sumW / nW) : null, ma: null,
-          burn: hasB ? Math.round(sumB) : null
+          burn: nB ? Math.round(sumB / nB) : null
         });
       }
       return out;
@@ -226,17 +226,17 @@
     for (i = RANGES.month - 1; i >= 0; i--) {
       var dt = new Date(base.getFullYear(), base.getMonth() - i, 1);
       var mk = dt.getFullYear() + '-' + pad(dt.getMonth() + 1);
-      var sW = 0, cW = 0, sB = 0, hB = false;
+      var sW = 0, cW = 0, sB = 0, cB = 0;
       Object.keys(state.days).forEach(function (key) {
         if (monthKey(key) !== mk) return;
         var dd = state.days[key];
         if (dd.weightKg !== null && dd.weightKg !== undefined && dd.weightKg !== '') { sW += nz(dd.weightKg); cW++; }
-        if (!isEmptyDay(dd)) { sB += burnOf(dd, state.plan).total; hB = true; }
+        if (!isEmptyDay(dd)) { sB += burnOf(dd, state.plan).total; cB++; }
       });
       out.push({
         key: mk, label: (dt.getMonth() + 1) + ' 月',
         weight: cW ? r1(sW / cW) : null, ma: null,
-        burn: hB ? Math.round(sB) : null
+        burn: cB ? Math.round(sB / cB) : null
       });
     }
     return out;

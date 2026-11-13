@@ -86,13 +86,14 @@
     var isToday = cursor === S.todayKey();
     var tr = S.trend(state, range, cursor);
 
-    var weights = tr.map(function (p) { return p.ma; });
-    var raws = tr.map(function (p) { return p.weight; });
+    var isDay = range === 'day';
+    var weights = tr.map(function (p) { return isDay ? p.ma : p.weight; });
+    var raws = isDay ? tr.map(function (p) { return p.weight; }) : [];
     var burns = tr.map(function (p) { return p.burn; });
 
     var lastW = null, lastB = null;
     for (var i = tr.length - 1; i >= 0; i--) {
-      if (lastW === null && tr[i].ma !== null) lastW = tr[i].ma;
+      if (lastW === null && weights[i] !== null) lastW = weights[i];
       if (lastB === null && tr[i].burn !== null) lastB = tr[i].burn;
     }
 

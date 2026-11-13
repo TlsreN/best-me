@@ -45,6 +45,7 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 | [v0.5.3](versions/v0.5.3/总结.md) | 2026-11-13 | S02 单屏版：日历移入数据页，首页一屏放完 |
 | [v0.6.0](versions/v0.6.0/总结.md) | 2026-11-13 | **PRD v2.0 定稿**，开发依据锁定（含测试与变更流程） |
 | [v0.6.1](versions/v0.6.1/总结.md) | 2026-11-13 | 按 PRD 重写：三页结构、训练消耗拆分、双计量食物、日周月趋势 |
+| [v0.6.2](versions/v0.6.2/总结.md) | 2026-11-13 | 测试数据（Excel 模板 + 半年数据），修正周/月趋势口径 |
 
 ## 关键文档
 

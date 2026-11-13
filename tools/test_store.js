@@ -103,7 +103,7 @@ eq('日视图训练消耗=200+100', tDay[29].burn, 300);
 const tWeek = S.trend(st, 'week', base);
 eq('周视图点数', tWeek.length, 12);
 truthy('周视图有体重均值', tWeek[11].weight !== null);
-truthy('周视图有消耗合计', tWeek[11].burn >= 300);
+truthy('周视图消耗为日均（>0 且 <600）', tWeek[11].burn > 0 && tWeek[11].burn < 600);
 
 const tMonth = S.trend(st, 'month', base);
 eq('月视图点数', tMonth.length, 12);
