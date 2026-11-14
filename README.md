@@ -4,7 +4,19 @@
 
 当前形态：**PWA 网页应用**（原因见 [docs/02-技术路线与限制.md](docs/02-技术路线与限制.md)：没有 Mac，原生与 HealthKit 暂时做不了）。
 
-## 先跑起来
+## 手机上用这个地址
+
+**https://tlsren.github.io/best-me/**
+
+Safari 打开 → 分享 → 添加到主屏幕。不依赖电脑，断网也能开。
+
+改了代码后发布：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -Message "改了什么"
+```
+
+## 本地开发
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
