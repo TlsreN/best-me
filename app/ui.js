@@ -190,6 +190,9 @@
     }
 
     var sel = state.days[selDate];
+    var selSt = S.statusOf(state, selDate);
+    var stText = { good: '达标', warm: '不达标', over: '超量', empty: '未记录' }[selSt] || '未记录';
+    var stCls = 'st-' + selSt;
     var selT = S.dayTotals(sel);
     var selGoal = S.targets(state.plan, sel || S.newDay());
 
@@ -246,7 +249,8 @@
       '</section>' +
 
       '<section class="card">' +
-        '<div class="card-t"><b>' + S.dayLabel(selDate) + ' · 达标</b>' +
+        '<div class="card-t"><span class="card-t-l"><b>' + S.dayLabel(selDate) + '</b>' +
+          '<span class="tag ' + stCls + '">' + stText + '</span></span>' +
           '<button class="pill" data-act="open-day">打开 ›</button></div>' +
         bars +
       '</section>' +

@@ -29,7 +29,12 @@
     }
     window.ZGHDBug.setState(seed);
 
-    if (mode === 'about') { window.ZGHDBug.go('body', S.todayKey()); document.querySelector('[data-act="about"]').click(); }
+    if (mode === 'data13') {
+      window.ZGHDBug.go('data', S.todayKey());
+      var cell = document.querySelector('[data-date="2026-11-13"]');
+      if (cell) cell.click();
+    }
+    else if (mode === 'about') { window.ZGHDBug.go('body', S.todayKey()); document.querySelector('[data-act="about"]').click(); }
     else if (mode === 'meal') { window.ZGHDBug.go('today', S.todayKey()); document.querySelector('[data-act="meal"][data-meal="lunch"]').click(); }
     else if (mode === 'workout') { window.ZGHDBug.go('today', S.todayKey()); document.querySelector('[data-act="workout"]').click(); }
     else if (mode === 'data') { window.ZGHDBug.go('data', S.todayKey()); }

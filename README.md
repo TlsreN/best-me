@@ -62,6 +62,8 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 | [v0.7.1](versions/v0.7.1/总结.md) | 2026-11-13 | 健康数据导入（快捷指令通道），消耗改用健康值 |
 | [v0.8.0](versions/v0.8.0/总结.md) | 2026-11-13 | 首页刷新/合并卡片/方向可切；日历改四项判定 |
 | [v0.8.1](versions/v0.8.1/总结.md) | 2026-11-13 | 日历状态只判碳水与蛋白 |
+| [v0.9.0](versions/v0.9.0/总结.md) | 2026-11-14 | 上线 GitHub Pages，固定域名 |
+| [v0.9.1](versions/v0.9.1/总结.md) | 2026-11-14 | 达标卡显示实时状态标签 |
 
 ## 关键文档
 

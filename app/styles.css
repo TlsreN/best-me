@@ -239,3 +239,10 @@ input[type=number] { font-variant-numeric: tabular-nums; }
   .page.today .trend { grid-area: trend; }
   .page.today .plot { height: 76px; }
 }
+/* 达标标签 */
+.card-t-l { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tag { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 8px; white-space: nowrap; }
+.tag.st-good  { background: #EAF6F2; color: #1F8A6B; }
+.tag.st-warm  { background: #F2F9C4; color: #6E7A00; }
+.tag.st-over  { background: #FBEDEC; color: #B3423A; }
+.tag.st-empty { background: #F2F2F5; color: #8B8B90; }
