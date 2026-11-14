@@ -55,7 +55,8 @@ powershell -ExecutionPolicy Bypass -File tools\serve.ps1 -Port 8080
 
 - [docs/05-PRD.md](docs/05-PRD.md) ← **开发依据，先看这个**
 - [docs/06-需求清单与取舍.md](docs/06-需求清单与取舍.md) ← 需求边界与待拍板项
-- [docs/09-健康数据导入.md](docs/09-健康数据导入.md) ← 苹果健康怎么接\n- [docs/07-风格设计.md](docs/07-风格设计.md) + [风格库索引](docs/design/styles/索引.md) ← 界面规范，说名字换风格
+- [docs/09-健康数据导入.md](docs/09-健康数据导入.md) ← 苹果健康怎么接
+- [docs/10-本地化部署方案.md](docs/10-本地化部署方案.md) ← 怎么脱离电脑、固定地址\n- [docs/07-风格设计.md](docs/07-风格设计.md) + [风格库索引](docs/design/styles/索引.md) ← 界面规范，说名字换风格
 - [docs/01-数据模型与功能范围.md](docs/01-数据模型与功能范围.md)
 - [docs/02-技术路线与限制.md](docs/02-技术路线与限制.md)
 - [docs/03-饮食方案（午饭前练·增肌与减脂）.md](docs/03-饮食方案（午饭前练·增肌与减脂）.md)
