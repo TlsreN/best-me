@@ -243,9 +243,9 @@
 
     var mealRows = S.MEALS.map(function (m) {
       var x = sel && sel.meals && sel.meals[m.id];
-      var kc = S.mealKcal(x);
+      var mt = S.mealTotals(x);
       return '<div class="row"><span class="k">' + m.name + '</span>' +
-        '<span class="v">' + (kc ? n0(kc) + ' 大卡 · 碳' + n0(x.carbs) + ' 蛋' + n0(x.protein) + ' 脂' + n0(x.fat) : '—') + '</span></div>';
+        '<span class="v">' + (mt.kcal ? n0(mt.kcal) + ' 大卡 · 碳' + n0(mt.carbs) + ' 蛋' + n0(mt.protein) + ' 脂' + n0(mt.fat) : '—') + '</span></div>';
     }).join('');
 
     return '<div class="page">' +
@@ -277,6 +277,8 @@
         '<div class="card-t"><b>' + S.dayLabel(selDate) + ' · 吃了什么</b></div>' +
         '<div class="rows">' + mealRows + '</div>' +
       '</section>' +
+
+      foodCardHtml() +
 
       '<section class="card">' +
         '<div class="card-t"><b>能量换算</b><span class="more">1 kcal = 4.184 kJ</span></div>' +
@@ -376,35 +378,194 @@
   }
   function closeSheet() { modal.innerHTML = ''; }
 
-  /* ---- 记一餐：只填这一顿的总量 ---- */
+  /* ---- 记一餐：一餐多条「食物 + 克数」，合计自动算 ---- */
   function openMeal(mealId) {
     editingMeal = mealId;
     var day = dayOf(cursor, true);
     var meal = S.MEALS.filter(function (m) { return m.id === mealId; })[0] || S.MEALS[0];
-    var cur = (day.meals && day.meals[meal.id]) || null;
+    var cur = (day.meals && day.meals[meal.id]) || { items: [], note: '' };
+    var items = cur.items || [];
+    var t = S.mealTotals(cur);
+
+    var rows = items.map(function (it, idx) {
+      var editable = !!(it.per100 && it.grams !== null && it.grams !== undefined);
+      return '<div class="list-item">' +
+        '<div class="nm">' + esc(it.name || '整餐') +
+          '<small>' + (it.grams !== null && it.grams !== undefined ? f1(it.grams) + ' g · ' : '') +
+          '碳' + f1(it.carbs) + ' 蛋' + f1(it.protein) + ' 脂' + f1(it.fat) + ' · ' + n0(it.kcal) + ' kcal</small></div>' +
+        (editable ? '<button class="del" data-act="item-edit" data-meal="' + meal.id + '" data-idx="' + idx + '" title="改克数">✎</button>' : '') +
+        '<button class="del" data-act="item-del" data-meal="' + meal.id + '" data-idx="' + idx + '" title="删除">×</button>' +
+      '</div>';
+    }).join('');
 
     openSheet('记' + meal.name, '' +
       '<div class="fields">' +
-        '<div class="hint">只填这一顿的总量，不用拆到每样食物。热量留空就按 碳×4 + 蛋×4 + 脂×9 算。</div>' +
+        '<div class="meal-sum">' +
+          '<div><b>' + n0(t.carbs) + '</b><span>碳水 g</span></div>' +
+          '<div><b>' + n0(t.protein) + '</b><span>蛋白 g</span></div>' +
+          '<div><b>' + n0(t.fat) + '</b><span>脂肪 g</span></div>' +
+          '<div><b>' + n0(t.kcal) + '</b><span>kcal</span></div>' +
+        '</div>' +
+        (items.length ? '<div class="rows">' + rows + '</div>' : '<div class="hint">这一餐还没记东西。点下面「加一条」从食物库里选。</div>') +
+        '<button class="ghost" data-act="item-add" data-meal="' + meal.id + '">+ 加一条食物</button>' +
+        (items.length ? '<button class="ghost danger" data-act="meal-clear" data-meal="' + meal.id + '">清掉这一餐</button>' : '') +
+        '<div class="hint">合计按条目自动算；点 ✎ 改克数，点 × 删掉这一条。</div>' +
+      '</div>');
+  }
+
+  /* ---- 加一条：先选食物，再填克数 ---- */
+  function openFoodPicker(mealId) {
+    var foods = S.sortFoods(state.foods);
+    if (!foods.length) {
+      openSheet('加一条食物', '<div class="fields">' +
+        '<div class="hint">还没有食物档案。先按包装上的「每 100 g」建一个，之后每次只填克数。</div>' +
+        '<button class="primary" data-act="food-new">去新建食物</button>' +
+        '<button class="ghost" data-act="back-meal" data-meal="' + mealId + '">返回这一餐</button>' +
+      '</div>');
+      return;
+    }
+    openSheet('加一条食物', '<div class="fields">' +
+      '<input id="fp-q" placeholder="搜索食物" autocomplete="off">' +
+      '<div class="rows" id="fp-rows">' + foods.map(function (f) { return pickRow(f, mealId); }).join('') + '</div>' +
+      '<button class="ghost" data-act="back-meal" data-meal="' + mealId + '">返回这一餐</button>' +
+    '</div>');
+  }
+
+  function pickRow(f, mealId) {
+    var p = S.per100Of(f);
+    return '<div class="row tap" data-act="item-pick" data-meal="' + mealId + '" data-id="' + f.id + '">' +
+      '<span class="k">' + esc(f.name) + '</span>' +
+      '<span class="v">' + n0(p.kcal) + ' kcal · 蛋' + n0(p.protein) + ' / 100g</span></div>';
+  }
+
+  function filterPickRows() {
+    var inp = q('#fp-q'), box = q('#fp-rows');
+    if (!inp || !box) return;
+    var needle = inp.value.trim().toLowerCase();
+    var list = S.sortFoods(state.foods).filter(function (f) {
+      return !needle || String(f.name || '').toLowerCase().indexOf(needle) >= 0;
+    });
+    box.innerHTML = list.length ? list.map(function (f) { return pickRow(f, editingMeal); }).join('') : '<div class="hint">没有匹配的食物</div>';
+  }
+
+  /* 共享给「填克数」预览的每 100 g 数据 */
+  var gramsPer100 = null;
+
+  function openGrams(mealId, foodId, idx) {
+    var day = dayOf(cursor, true);
+    var meal = day.meals[mealId] || (day.meals[mealId] = { items: [], note: '' });
+    var item = (idx === undefined || idx === null || idx === '') ? null : meal.items[Number(idx)];
+    var food = foodId ? state.foods.filter(function (x) { return x.id === foodId; })[0]
+      : (item && item.foodId ? state.foods.filter(function (x) { return x.id === item.foodId; })[0] : null);
+    if (!item && !food) return;
+
+    var name = item ? (item.name || '整餐') : food.name;
+    var per100 = item ? item.per100 : S.per100Of(food);
+    gramsPer100 = per100;
+    var hasScoop = food && food.scoopG > 0;
+    var grams = item
+      ? (item.grams !== null && item.grams !== undefined ? item.grams : '')
+      : (hasScoop ? food.scoopG : '');
+
+    openSheet(name, '' +
+      '<div class="fields">' +
+        (per100
+          ? '<div class="hint">每 100 g：碳 ' + f1(per100.carbs) + ' · 蛋 ' + f1(per100.protein) + ' · 脂 ' + f1(per100.fat) + ' · ' + n0(per100.kcal) + ' kcal</div>'
+          : '<div class="hint">这是旧记录，只能改克数以外的方式：删掉重记。</div>') +
+        (per100
+          ? '<label class="field">这次吃了多少 g<input type="number" step="1" id="g-grams" value="' + (grams === '' ? '' : f1(grams)) + '" placeholder="30"></label>' +
+            (hasScoop ? '<button class="ghost" data-act="g-scoop" data-g="' + food.scoopG + '">一' + esc(food.scoopLabel || '勺') + ' = ' + f1(food.scoopG) + ' g</button>' : '') +
+            '<div class="hint" id="g-prev"></div>' +
+            '<button class="primary" data-act="item-save" data-meal="' + mealId + '" data-idx="' + (item ? idx : '') + '"' +
+              (food ? ' data-food="' + food.id + '"' : '') + '>保存</button>'
+          : '') +
+        '<button class="ghost" data-act="back-meal" data-meal="' + mealId + '">返回这一餐</button>' +
+      '</div>');
+
+    previewGrams();
+    if (q('#g-grams')) q('#g-grams').addEventListener('input', previewGrams);
+  }
+
+  function previewGrams() {
+    var box = q('#g-prev');
+    if (!box || !gramsPer100) return;
+    var g = num(q('#g-grams') && q('#g-grams').value) || 0;
+    if (!g) { box.textContent = '填克数后自动算碳蛋脂'; return; }
+    var k = g / 100;
+    box.textContent = '≈ 碳 ' + f1(gramsPer100.carbs * k) + ' · 蛋 ' + f1(gramsPer100.protein * k) +
+      ' · 脂 ' + f1(gramsPer100.fat * k) + ' · ' + n0(gramsPer100.kcal * k) + ' kcal';
+  }
+
+  /* ---- 自定义食物：卡片与编辑 ---- */
+  function foodRow(f) {
+    var p = S.per100Of(f);
+    return '<div class="row tap food-row" data-act="food-edit" data-id="' + f.id + '">' +
+      '<span class="k">' + esc(f.name || '未命名') + '</span>' +
+      '<span class="v">碳' + n0(p.carbs) + ' 蛋' + n0(p.protein) + ' 脂' + n0(p.fat) + ' · ' + n0(p.kcal) + ' kcal' +
+      (f.scoopG ? ' · 一' + esc(f.scoopLabel || '勺') + n0(f.scoopG) + 'g' : '') + '</span></div>';
+  }
+
+  function foodCardHtml() {
+    var foods = S.sortFoods(state.foods);
+    return '<section class="card">' +
+      '<div class="card-t"><b>自定义食物</b><span class="more">' + foods.length + ' 个 · 按最近使用</span></div>' +
+      (foods.length ? '<input id="food-q" placeholder="搜索食物" autocomplete="off">' : '') +
+      '<div class="rows" id="food-rows">' +
+        (foods.length ? foods.map(foodRow).join('') : '<div class="hint">还没有食物。先按包装上的「每 100 g」建一个，之后记一餐只要填克数。</div>') +
+      '</div>' +
+      '<button class="addbtn" data-act="food-new">+ 新建食物</button>' +
+    '</section>';
+  }
+
+  function filterFoodRows() {
+    var inp = q('#food-q'), box = q('#food-rows');
+    if (!inp || !box) return;
+    var needle = inp.value.trim().toLowerCase();
+    var list = S.sortFoods(state.foods).filter(function (f) {
+      return !needle || String(f.name || '').toLowerCase().indexOf(needle) >= 0;
+    });
+    box.innerHTML = list.length ? list.map(foodRow).join('') : '<div class="hint">没有匹配的食物</div>';
+  }
+
+  function openFood(id) {
+    var f = id ? state.foods.filter(function (x) { return x.id === id; })[0] : null;
+    var isNew = !f;
+    if (!f) f = S.newFood();
+    openSheet(isNew ? '新建食物' : '编辑食物', '' +
+      '<div class="fields">' +
+        '<label class="field">名称<input id="fd-name" value="' + esc(f.name) + '" placeholder="乳清蛋白粉" autocomplete="off"></label>' +
+        '<label class="field">热量（每 100 g）<div class="frow">' +
+          '<input type="number" step="0.1" id="fd-energy" value="' + (f.kcal100 ? f1(f.kcal100) : '') + '" placeholder="留空自动算">' +
+          '<select id="fd-unit" style="max-width:96px"><option value="kcal">kcal</option><option value="kj">kJ</option></select>' +
+        '</div></label>' +
+        '<div class="hint" id="fd-hint"></div>' +
         '<div class="frow">' +
-          '<label class="field">碳水 g<input type="number" step="1" id="m-carb" value="' + (cur ? f1(cur.carbs) : '') + '"></label>' +
-          '<label class="field">蛋白 g<input type="number" step="1" id="m-pro" value="' + (cur ? f1(cur.protein) : '') + '"></label>' +
-          '<label class="field">脂肪 g<input type="number" step="1" id="m-fat" value="' + (cur ? f1(cur.fat) : '') + '"></label>' +
+          '<label class="field">碳水 g / 100 g<input type="number" step="0.1" id="fd-carb" value="' + (f.carbs100 ? f1(f.carbs100) : '') + '"></label>' +
+          '<label class="field">蛋白 g / 100 g<input type="number" step="0.1" id="fd-pro" value="' + (f.protein100 ? f1(f.protein100) : '') + '"></label>' +
         '</div>' +
         '<div class="frow">' +
-          '<label class="field">热量 kcal<input type="number" step="1" id="m-kcal" value="' + (cur && cur.kcal !== null && cur.kcal !== undefined ? cur.kcal : '') + '" placeholder="自动算"></label>' +
-          '<label class="field">备注<input type="text" id="m-note" value="' + esc(cur ? cur.note : '') + '" placeholder="如 米饭+鸡胸"></label>' +
+          '<label class="field">脂肪 g / 100 g<input type="number" step="0.1" id="fd-fat" value="' + (f.fat100 ? f1(f.fat100) : '') + '"></label>' +
+          '<label class="field">一勺 ≈ g<input type="number" step="0.1" id="fd-scoop" value="' + (f.scoopG ? f1(f.scoopG) : '') + '" placeholder="30"></label>' +
         '</div>' +
-        '<div class="hint" id="m-prev"></div>' +
-        '<button class="primary" data-act="meal-save">保存</button>' +
-        (cur ? '<button class="ghost danger" data-act="meal-clear">清掉这一餐</button>' : '') +
+        '<label class="field">一勺叫法<input id="fd-scoopl" value="' + esc(f.scoopLabel || '勺') + '" placeholder="勺"></label>' +
+        '<button class="primary" data-act="food-save" data-id="' + (isNew ? '' : f.id) + '">保存</button>' +
+        (isNew ? '' : '<button class="ghost danger" data-act="food-del" data-id="' + f.id + '">删除这个食物</button>') +
+        '<div class="hint">按包装营养成分表填「每 100 g」。热量可填 kcal 或 kJ；留空按 碳×4 + 蛋×4 + 脂×9 算。</div>' +
       '</div>');
 
     function upd() {
-      var c = num(q('#m-carb').value) || 0, p = num(q('#m-pro').value) || 0, f = num(q('#m-fat').value) || 0;
-      q('#m-prev').textContent = '合计约 ' + Math.round(c * 4 + p * 4 + f * 9) + ' 大卡';
+      var v = num(q('#fd-energy').value);
+      var unit = q('#fd-unit').value;
+      var box = q('#fd-hint');
+      if (v === null) { box.textContent = ''; return; }
+      box.textContent = unit === 'kj'
+        ? '≈ ' + f1(S.kjToKcal(v)) + ' kcal（按 1 kcal = 4.184 kJ 存）'
+        : '≈ ' + f1(S.kcalToKj(v)) + ' kJ';
     }
-    ['#m-carb', '#m-pro', '#m-fat'].forEach(function (id) { q(id).addEventListener('input', upd); });
+    ['#fd-energy', '#fd-unit'].forEach(function (sel) {
+      q(sel).addEventListener('input', upd);
+      q(sel).addEventListener('change', upd);
+    });
     upd();
   }
 
@@ -583,6 +744,7 @@
       '<div class="rows">' +
         '<div class="row"><span class="k">版本</span><span class="v">v' + S.VERSION + '</span></div>' +
         '<div class="row"><span class="k">有记录的天数</span><span class="v">' + days + ' 天</span></div>' +
+        '<div class="row"><span class="k">食物档案</span><span class="v">' + (state.foods.length || 0) + ' 个</span></div>' +
         '<div class="row"><span class="k">健康数据</span><span class="v">' + (healthDays ? healthDays + ' 天 · 最近 ' + (lastHealth || '--') : '未导入') + '</span></div>' +
         '<div class="row"><span class="k">方案</span><span class="v">' + (state.plan.direction === 'bulk' ? '增肌' : '减脂') + ' · 午饭前练</span></div>' +
       '</div>' +
@@ -674,19 +836,87 @@
       case 'water': openWater(); break;
 
       case 'meal-save':
-        day.meals[editingMeal] = {
-          carbs: num(q('#m-carb').value) || 0,
-          protein: num(q('#m-pro').value) || 0,
-          fat: num(q('#m-fat').value) || 0,
-          kcal: num(q('#m-kcal').value),
-          note: (q('#m-note').value || '').trim()
+        /* v4 起一餐由条目组成，不再有整餐手填 */
+        break;
+      case 'meal-clear': {
+        var clearId = el.dataset.meal || editingMeal;
+        delete day.meals[clearId];
+        persist(); closeSheet();
+        break;
+      }
+
+      case 'item-add': openFoodPicker(el.dataset.meal); break;
+      case 'item-pick': openGrams(el.dataset.meal, el.dataset.id); break;
+      case 'item-edit': openGrams(el.dataset.meal, null, el.dataset.idx); break;
+      case 'back-meal': openMeal(el.dataset.meal); break;
+
+      case 'g-scoop': {
+        if (q('#g-grams')) { q('#g-grams').value = el.dataset.g; previewGrams(); }
+        break;
+      }
+      case 'item-save': {
+        var mid = el.dataset.meal;
+        var idxAttr = el.dataset.idx;
+        var grams = num(q('#g-grams') && q('#g-grams').value);
+        if (grams === null || grams <= 0) { alert('先填这次吃了多少克'); break; }
+        var dm = dayOf(cursor, true);
+        var mm = dm.meals[mid] || (dm.meals[mid] = { items: [], note: '' });
+        if (idxAttr !== '' && idxAttr !== undefined && idxAttr !== null) {
+          var it0 = mm.items[Number(idxAttr)];
+          if (it0) S.recalcItem(it0, grams);
+        } else {
+          var fid = el.dataset.food;
+          var fo = state.foods.filter(function (x) { return x.id === fid; })[0];
+          if (!fo) { alert('这个食物已被删除'); break; }
+          mm.items.push(S.makeItem(fo, grams));
+          fo.lastUsedAt = new Date().toISOString();
+        }
+        S.save(state); render(); openMeal(mid);
+        break;
+      }
+      case 'item-del': {
+        var dme = dayOf(cursor, true);
+        var mm2 = dme.meals[el.dataset.meal];
+        if (mm2 && mm2.items) {
+          mm2.items.splice(Number(el.dataset.idx), 1);
+          S.save(state); render(); openMeal(el.dataset.meal);
+        }
+        break;
+      }
+
+      case 'food-new': openFood(); break;
+      case 'food-edit': openFood(el.dataset.id); break;
+      case 'food-save': {
+        var fname = (q('#fd-name').value || '').trim();
+        if (!fname) { alert('先填食物名称'); break; }
+        var unit = q('#fd-unit').value;
+        var energy = num(q('#fd-energy').value);
+        var data = {
+          name: fname,
+          kcal100: energy === null ? 0 : (unit === 'kj' ? S.kjToKcal(energy) : energy),
+          carbs100: num(q('#fd-carb').value) || 0,
+          protein100: num(q('#fd-pro').value) || 0,
+          fat100: num(q('#fd-fat').value) || 0,
+          scoopG: num(q('#fd-scoop').value) || 0,
+          scoopLabel: (q('#fd-scoopl').value || '勺').trim() || '勺'
         };
+        var fid2 = el.dataset.id;
+        if (fid2) {
+          var fExist = state.foods.filter(function (x) { return x.id === fid2; })[0];
+          if (fExist) Object.assign(fExist, data);
+        } else {
+          state.foods.push(Object.assign(S.newFood(), data));
+        }
         persist(); closeSheet();
         break;
-      case 'meal-clear':
-        delete day.meals[editingMeal];
+      }
+      case 'food-del': {
+        if (!confirm('删除这个食物？已经记过的历史不受影响。')) break;
+        var fdel = el.dataset.id;
+        state.foods = state.foods.filter(function (x) { return x.id !== fdel; });
         persist(); closeSheet();
         break;
+      }
 
       case 'workout-save': {
         var a = S.ACTIVITIES.filter(function (x) { return x.id === q('#t-act').value; })[0] || S.ACTIVITIES[0];
@@ -779,6 +1009,10 @@
     } else if (e.target.id === 'conv-kj') {
       var v2 = Number(e.target.value);
       q('#conv-kcal').value = v2 ? (v2 / 4.184).toFixed(0) : '';
+    } else if (e.target.id === 'food-q') {
+      filterFoodRows();
+    } else if (e.target.id === 'fp-q') {
+      filterPickRows();
     }
   });
 

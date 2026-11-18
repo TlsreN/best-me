@@ -2,9 +2,9 @@
 (function (global) {
   'use strict';
 
-  var KEY = 'zghd.v3';
-  var LEGACY = ['zghd.v2', 'zghd.v1'];
-  var VERSION = '0.9.3';
+  var KEY = 'zghd.v4';
+  var LEGACY = ['zghd.v3', 'zghd.v2', 'zghd.v1'];
+  var VERSION = '0.10.0';
 
   var MEALS = [
     { id: 'breakfast', name: '早饭' },
@@ -44,7 +44,16 @@
     };
   }
 
-  function newMeal() { return { carbs: 0, protein: 0, fat: 0, kcal: null, note: '' }; }
+  function newMeal() { return { items: [], note: '' }; }
+
+  function newFood() {
+    return {
+      id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name: '', kcal100: 0, carbs100: 0, protein100: 0, fat100: 0,
+      scoopG: 0, scoopLabel: '勺',
+      createdAt: new Date().toISOString(), lastUsedAt: null
+    };
+  }
 
   function newDay() {
     return {
@@ -57,7 +66,7 @@
   }
 
   function emptyState() {
-    return { schemaVersion: 3, plan: defaultPlan(), days: {}, lastBackupAt: null };
+    return { schemaVersion: 4, plan: defaultPlan(), foods: [], days: {}, lastBackupAt: null };
   }
 
   /* ---------- 日期 ---------- */
@@ -127,8 +136,89 @@
   /* ---------- 一餐热量 ---------- */
   function mealKcal(m) {
     if (!m) return 0;
+    if (Array.isArray(m.items)) {
+      return r1(m.items.reduce(function (s, it) { return s + nz(it && it.kcal); }, 0));
+    }
     if (m.kcal !== null && m.kcal !== undefined && m.kcal !== '') return nz(m.kcal);
     return r1(nz(m.carbs) * 4 + nz(m.protein) * 4 + nz(m.fat) * 9);
+  }
+
+  /* ---------- 食物：每 100 g 档案 ---------- */
+  var KCAL_PER_KJ = 0.2390057;
+  function kjToKcal(kj) { return r1(nz(kj) / 4.184); }
+  function kcalToKj(kcal) { return r1(nz(kcal) * 4.184); }
+
+  /* 档案的每 100 g 四项；热量留空就按 4/4/9 算 */
+  function per100Of(food) {
+    var f = food || {};
+    var kcal = nz(f.kcal100);
+    if (!kcal) kcal = nz(f.carbs100) * 4 + nz(f.protein100) * 4 + nz(f.fat100) * 9;
+    return { kcal: r1(kcal), carbs: nz(f.carbs100), protein: nz(f.protein100), fat: nz(f.fat100) };
+  }
+
+  function scalePer100(p, grams) {
+    var g = nz(grams) / 100;
+    return {
+      kcal: r1(nz(p && p.kcal) * g),
+      carbs: r1(nz(p && p.carbs) * g),
+      protein: r1(nz(p && p.protein) * g),
+      fat: r1(nz(p && p.fat) * g)
+    };
+  }
+
+  function foodMacros(food, grams) { return scalePer100(per100Of(food), grams); }
+
+  /* 一条记录：存当时的每 100 g 快照 + 克数，所以改档案/删食物都不影响历史 */
+  function makeItem(food, grams) {
+    var p = per100Of(food), m = scalePer100(p, grams);
+    return {
+      id: 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      foodId: (food && food.id) || null,
+      name: (food && food.name) || '',
+      grams: nz(grams),
+      per100: p,
+      kcal: m.kcal, carbs: m.carbs, protein: m.protein, fat: m.fat
+    };
+  }
+
+  /* 改克数：按快照重算这一条 */
+  function recalcItem(item, grams) {
+    if (!item) return item;
+    if (!item.per100) { item.grams = nz(grams); return item; }
+    var m = scalePer100(item.per100, grams);
+    item.grams = nz(grams);
+    item.kcal = m.kcal; item.carbs = m.carbs; item.protein = m.protein; item.fat = m.fat;
+    return item;
+  }
+
+  /* 一餐合计：新结构按条目加总；旧结构（没有 items）按原来的总数 */
+  function mealTotals(meal) {
+    var t = { kcal: 0, carbs: 0, protein: 0, fat: 0, items: 0 };
+    if (!meal) return t;
+    if (Array.isArray(meal.items)) {
+      meal.items.forEach(function (it) {
+        if (!it) return;
+        t.kcal += nz(it.kcal); t.carbs += nz(it.carbs); t.protein += nz(it.protein); t.fat += nz(it.fat);
+        t.items++;
+      });
+    } else {
+      var k = mealKcal(meal);
+      if (k || nz(meal.carbs) || nz(meal.protein) || nz(meal.fat)) {
+        t.kcal = k; t.carbs = nz(meal.carbs); t.protein = nz(meal.protein); t.fat = nz(meal.fat); t.items = 1;
+      }
+    }
+    t.kcal = r1(t.kcal); t.carbs = r1(t.carbs); t.protein = r1(t.protein); t.fat = r1(t.fat);
+    return t;
+  }
+
+  /* 最近使用优先，同时间按名字 */
+  function sortFoods(foods) {
+    return (foods || []).slice().sort(function (a, b) {
+      var ta = a && a.lastUsedAt ? String(a.lastUsedAt) : '';
+      var tb = b && b.lastUsedAt ? String(b.lastUsedAt) : '';
+      if (ta !== tb) return ta < tb ? 1 : -1;
+      return String((a && a.name) || '').localeCompare(String((b && b.name) || ''), 'zh-Hans-CN');
+    });
   }
 
   /* ---------- 当日汇总 ---------- */
@@ -138,9 +228,9 @@
     Object.keys(day.meals || {}).forEach(function (k) {
       var m = day.meals[k];
       if (!m) return;
-      var kc = mealKcal(m);
-      if (!kc && !nz(m.carbs) && !nz(m.protein) && !nz(m.fat)) return;
-      t.kcal += kc; t.carbs += nz(m.carbs); t.protein += nz(m.protein); t.fat += nz(m.fat);
+      var mt = mealTotals(m);
+      if (!mt.kcal && !mt.carbs && !mt.protein && !mt.fat) return;
+      t.kcal += mt.kcal; t.carbs += mt.carbs; t.protein += mt.protein; t.fat += mt.fat;
       t.meals++;
     });
     if (day.lift) { t.liftKcal = nz(day.lift.kcal); t.volume = nz(day.lift.volume); }
@@ -153,8 +243,8 @@
   function isEmptyDay(day) {
     if (!day) return true;
     var hasMeal = Object.keys(day.meals || {}).some(function (k) {
-      var m = day.meals[k];
-      return m && (nz(m.carbs) || nz(m.protein) || nz(m.fat) || nz(m.kcal));
+      var mt = mealTotals(day.meals[k]);
+      return !!(mt.kcal || mt.carbs || mt.protein || mt.fat);
     });
     var w = day.weightKg !== null && day.weightKg !== undefined && day.weightKg !== '';
     return !hasMeal && !day.lift && !day.cardio && !nz(day.waterMl) && !w;
@@ -271,11 +361,12 @@
 
   function normalize(s) {
     if (!s || typeof s !== 'object') return emptyState();
-    if (s.schemaVersion === 3) return finalize(s);
-    if (s.schemaVersion === 2) return finalize(migrateV2(s));
+    if (s.schemaVersion === 4) return finalize(s);
+    if (s.schemaVersion === 3) return finalize(migrateV3(s));
+    if (s.schemaVersion === 2) return finalize(migrateV3(migrateV2(s)));
     var d0 = firstDay(s.days);
-    if ((d0 && Array.isArray(d0.sets)) || s.version === 1) return finalize(migrateV1(s));
-    if (d0 && Array.isArray(d0.foods)) return finalize(migrateV2(s));
+    if ((d0 && Array.isArray(d0.sets)) || s.version === 1) return finalize(migrateV3(migrateV1(s)));
+    if (d0 && Array.isArray(d0.foods)) return finalize(migrateV3(migrateV2(s)));
     return finalize(s);
   }
 
@@ -307,7 +398,7 @@
 
       (d.foods || []).forEach(function (f) {
         if (!f || !f.meal) return;
-        var m = nd.meals[f.meal] || newMeal();
+        var m = nd.meals[f.meal] || { carbs: 0, protein: 0, fat: 0, kcal: 0, note: '' };
         m.carbs = r1(nz(m.carbs) + nz(f.carbs));
         m.protein = r1(nz(m.protein) + nz(f.protein));
         m.fat = r1(nz(m.fat) + nz(f.fat));
@@ -339,6 +430,71 @@
     return { schemaVersion: 3, plan: s.plan || {}, days: days, lastBackupAt: s.lastBackupAt || null };
   }
 
+  function legacyItem(m, mealKey) {
+    var kc = mealKcal(m);
+    return {
+      id: 'legacy-' + mealKey,
+      foodId: null,
+      name: (m.note || '整餐'),
+      grams: null,
+      per100: null,
+      kcal: kc, carbs: nz(m.carbs), protein: nz(m.protein), fat: nz(m.fat)
+    };
+  }
+
+  /* v3 → v4：一餐一条总数 → 一餐一条「整餐」条目 */
+  function migrateV3(s) {
+    var days = {};
+    Object.keys(s.days || {}).forEach(function (k) {
+      var d = Object.assign(newDay(), s.days[k]);
+      var meals = {};
+      Object.keys(d.meals || {}).forEach(function (mk) {
+        var m = d.meals[mk] || {};
+        if (Array.isArray(m.items)) { meals[mk] = { items: m.items, note: m.note || '' }; return; }
+        var kc = mealKcal(m);
+        var has = kc || nz(m.carbs) || nz(m.protein) || nz(m.fat);
+        meals[mk] = { items: has ? [legacyItem(m, mk)] : [], note: m.note || '' };
+      });
+      d.meals = meals;
+      days[k] = d;
+    });
+    return { schemaVersion: 4, plan: s.plan || {}, foods: s.foods || [], days: days, lastBackupAt: s.lastBackupAt || null };
+  }
+
+  function normalizeItems(items, mealKey) {
+    return (Array.isArray(items) ? items : []).map(function (it, idx) {
+      if (!it) return null;
+      var p = it.per100 && typeof it.per100 === 'object' ? {
+        kcal: nz(it.per100.kcal), carbs: nz(it.per100.carbs),
+        protein: nz(it.per100.protein), fat: nz(it.per100.fat)
+      } : null;
+      var grams = (it.grams === null || it.grams === undefined || it.grams === '') ? null : nz(it.grams);
+      return {
+        id: it.id || ('i' + mealKey + '-' + idx),
+        foodId: it.foodId || null,
+        name: it.name || '',
+        grams: grams,
+        per100: p,
+        kcal: nz(it.kcal), carbs: nz(it.carbs), protein: nz(it.protein), fat: nz(it.fat)
+      };
+    }).filter(Boolean);
+  }
+
+  function normalizeFoods(foods) {
+    return (Array.isArray(foods) ? foods : []).map(function (f, i) {
+      if (!f) return null;
+      return {
+        id: f.id || ('f' + i),
+        name: f.name || '',
+        kcal100: nz(f.kcal100), carbs100: nz(f.carbs100),
+        protein100: nz(f.protein100), fat100: nz(f.fat100),
+        scoopG: nz(f.scoopG), scoopLabel: f.scoopLabel || '勺',
+        createdAt: f.createdAt || null,
+        lastUsedAt: f.lastUsedAt || null
+      };
+    }).filter(Boolean);
+  }
+
   function finalize(s) {
     var p = Object.assign(defaultPlan(), s.plan || {});
     p.bulk = Object.assign(defaultPlan().bulk, (s.plan && s.plan.bulk) || {});
@@ -349,9 +505,28 @@
       d.train = !!d.train;
       d.waterMl = nz(d.waterMl);
       d.meals = d.meals || {};
+      var meals = {};
+      Object.keys(d.meals).forEach(function (mk) {
+        var m = d.meals[mk] || {};
+        var items;
+        if (Array.isArray(m.items)) {
+          items = normalizeItems(m.items, mk);
+        } else {
+          var kc = mealKcal(m);
+          items = (kc || nz(m.carbs) || nz(m.protein) || nz(m.fat)) ? [legacyItem(m, mk)] : [];
+        }
+        meals[mk] = { items: items, note: m.note || '' };
+      });
+      d.meals = meals;
       days[k] = d;
     });
-    return { schemaVersion: 3, plan: p, days: days, lastBackupAt: s.lastBackupAt || null };
+    return {
+      schemaVersion: 4,
+      plan: p,
+      foods: normalizeFoods(s.foods),
+      days: days,
+      lastBackupAt: s.lastBackupAt || null
+    };
   }
 
 
@@ -412,6 +587,13 @@
       if (src.train !== undefined && src.train !== null) dst.train = !!src.train;
       out.days[k] = dst;
     });
+    /* 食物档案按 id 合并：只补缺，不覆盖本地已有的 */
+    var outFoods = Array.isArray(out.foods) ? out.foods.slice() : [];
+    (inc.foods || []).forEach(function (f) {
+      if (!f) return;
+      if (!outFoods.some(function (x) { return x && x.id === f.id; })) outFoods.push(f);
+    });
+    out.foods = outFoods;
     return normalize(out);
   }
 
@@ -469,6 +651,9 @@
     bmr: bmr, noExerciseKcal: noExerciseKcal, burnOf: burnOf, balanceKcal: balanceKcal,
     factor: factor, targetKcal: targetKcal, macros: macros, targets: targets,
     mealKcal: mealKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
+    newFood: newFood, per100Of: per100Of, foodMacros: foodMacros, makeItem: makeItem,
+    recalcItem: recalcItem, mealTotals: mealTotals, sortFoods: sortFoods,
+    kjToKcal: kjToKcal, kcalToKj: kcalToKj,
     ma7: ma7, trend: trend, toCsv: toCsv, r1: r1,
     parseHealth: parseHealth, applyHealth: applyHealth, burnTotalOf: burnTotalOf, mergeState: mergeState
   };

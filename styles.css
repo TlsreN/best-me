@@ -172,6 +172,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .winput .u { font-size: 12px; color: var(--muted); }
 .wbtn { background: var(--ink); color: #fff; border-radius: 13px; padding: 10px 16px; font-size: 13px; font-weight: 600; }
 
+/* ---------- 一餐合计 ---------- */
+.meal-sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: #F7F7F9; border-radius: 14px; padding: 10px 6px; text-align: center; }
+.meal-sum b { display: block; font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+.meal-sum span { font-size: 10px; color: var(--muted); }
+.food-row .v { max-width: 58%; text-align: right; line-height: 1.35; }
+
 /* ---------- 标签栏 ---------- */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
