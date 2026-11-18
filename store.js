@@ -4,7 +4,7 @@
 
   var KEY = 'zghd.v4';
   var LEGACY = ['zghd.v3', 'zghd.v2', 'zghd.v1'];
-  var VERSION = '0.11.1';
+  var VERSION = '0.11.2';
 
   var MEALS = [
     { id: 'breakfast', name: '早饭' },
@@ -214,13 +214,13 @@
     return setManualItem(seed, Object.assign({ name: name }, m || {}));
   }
 
-  /* 环上刻度点：0% 在正上方，逆时针为正，返回 100×100 viewBox 坐标 */
+  /* 环上刻度点：0% 在正上方，顺时针为正，返回 100×100 viewBox 坐标 */
   function ringDot(ratio, radius) {
     var r = (radius === undefined || radius === null) ? 42 : nz(radius);
     var p = Math.max(0, Math.min(1, nz(ratio)));
     var rad = p * 2 * Math.PI;
     return {
-      x: Math.round((50 - r * Math.sin(rad)) * 10) / 10,
+      x: Math.round((50 + r * Math.sin(rad)) * 10) / 10,
       y: Math.round((50 - r * Math.cos(rad)) * 10) / 10
     };
   }

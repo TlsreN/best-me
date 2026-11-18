@@ -214,13 +214,13 @@
       '<span class="qi"><svg viewBox="0 0 24 24">' + icon + '</svg></span><em>' + label + '</em></button>';
   }
 
-  /* 从正上方起、逆时针画到比例处；0 与 100% 都在上方 */
+  /* 从正上方起、顺时针画到比例处；0 与 100% 都在上方 */
   function arcD(pct) {
     var p = Math.max(0, Math.min(1, pct));
     if (p <= 0) return '';
-    if (p >= 1) return 'M50 8 A42 42 0 1 0 50 92 A42 42 0 1 0 50 8';
+    if (p >= 1) return 'M50 8 A42 42 0 1 1 50 92 A42 42 0 1 1 50 8';
     var end = S.ringDot(p);
-    return 'M50 8 A42 42 0 ' + (p > 0.5 ? 1 : 0) + ' 0 ' + end.x + ' ' + end.y;
+    return 'M50 8 A42 42 0 ' + (p > 0.5 ? 1 : 0) + ' 1 ' + end.x + ' ' + end.y;
   }
 
   function ring(label, value, goal, color, extra) {
