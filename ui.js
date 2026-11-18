@@ -388,12 +388,11 @@
     var t = S.mealTotals(cur);
 
     var rows = items.map(function (it, idx) {
-      var editable = !!(it.per100 && it.grams !== null && it.grams !== undefined);
       return '<div class="list-item">' +
         '<div class="nm">' + esc(it.name || '整餐') +
           '<small>' + (it.grams !== null && it.grams !== undefined ? f1(it.grams) + ' g · ' : '') +
           '碳' + f1(it.carbs) + ' 蛋' + f1(it.protein) + ' 脂' + f1(it.fat) + ' · ' + n0(it.kcal) + ' kcal</small></div>' +
-        (editable ? '<button class="del" data-act="item-edit" data-meal="' + meal.id + '" data-idx="' + idx + '" title="改克数">✎</button>' : '') +
+        '<button class="del" data-act="item-edit" data-meal="' + meal.id + '" data-idx="' + idx + '" title="修改">✎</button>' +
         '<button class="del" data-act="item-del" data-meal="' + meal.id + '" data-idx="' + idx + '" title="删除">×</button>' +
       '</div>';
     }).join('');
@@ -407,9 +406,10 @@
           '<div><b>' + n0(t.kcal) + '</b><span>kcal</span></div>' +
         '</div>' +
         (items.length ? '<div class="rows">' + rows + '</div>' : '<div class="hint">这一餐还没记东西。点下面「加一条」从食物库里选。</div>') +
-        '<button class="ghost" data-act="item-add" data-meal="' + meal.id + '">+ 加一条食物</button>' +
+        '<button class="ghost" data-act="item-add" data-meal="' + meal.id + '">+ 从食物库加一条</button>' +
+        '<button class="ghost" data-act="item-manual" data-meal="' + meal.id + '">+ 手写一条（不用建食物）</button>' +
         (items.length ? '<button class="ghost danger" data-act="meal-clear" data-meal="' + meal.id + '">清掉这一餐</button>' : '') +
-        '<div class="hint">合计按条目自动算；点 ✎ 改克数，点 × 删掉这一条。</div>' +
+        '<div class="hint">合计按条目自动算；点 ✎ 修改（食物条目可切「直接填营养」），点 × 删除。</div>' +
       '</div>');
   }
 
@@ -450,39 +450,71 @@
 
   /* 共享给「填克数」预览的每 100 g 数据 */
   var gramsPer100 = null;
+  var editorMode = 'grams';
 
-  function openGrams(mealId, foodId, idx) {
+  function openItemEditor(mealId, foodId, idx, forceManual) {
     var day = dayOf(cursor, true);
     var meal = day.meals[mealId] || (day.meals[mealId] = { items: [], note: '' });
     var item = (idx === undefined || idx === null || idx === '') ? null : meal.items[Number(idx)];
+    if (forceManual) { item = null; foodId = null; }
     var food = foodId ? state.foods.filter(function (x) { return x.id === foodId; })[0]
       : (item && item.foodId ? state.foods.filter(function (x) { return x.id === item.foodId; })[0] : null);
-    if (!item && !food) return;
+    if (!item && !food && !forceManual) return;
 
-    var name = item ? (item.name || '整餐') : food.name;
-    var per100 = item ? item.per100 : S.per100Of(food);
+    var per100 = item ? item.per100 : (food ? S.per100Of(food) : null);
     gramsPer100 = per100;
+    var showSeg = !!(item && per100);           /* 食物条目才能切「直接填营养」 */
+    editorMode = per100 ? 'grams' : 'manual';
+    var name = item ? (item.name || '整餐') : (food ? food.name : '手写一条');
     var hasScoop = food && food.scoopG > 0;
     var grams = item
       ? (item.grams !== null && item.grams !== undefined ? item.grams : '')
       : (hasScoop ? food.scoopG : '');
 
-    openSheet(name, '' +
+    var mC = item ? item.carbs : (food ? S.per100Of(food).carbs : 0);
+    var mP = item ? item.protein : (food ? S.per100Of(food).protein : 0);
+    var mF = item ? item.fat : (food ? S.per100Of(food).fat : 0);
+    var mK = item ? item.kcal : (food ? S.per100Of(food).kcal : 0);
+
+    openSheet(name === '手写一条' ? '手写一条' : name, '' +
       '<div class="fields">' +
+        (showSeg
+          ? '<div class="seg" id="it-seg">' +
+              '<button data-act="item-mode" data-mode="grams" class="' + (editorMode === 'grams' ? 'on' : '') + '">按克数</button>' +
+              '<button data-act="item-mode" data-mode="manual" class="' + (editorMode === 'manual' ? 'on' : '') + '">直接填营养</button>' +
+            '</div>'
+          : '') +
         (per100
           ? '<div class="hint">每 100 g：碳 ' + f1(per100.carbs) + ' · 蛋 ' + f1(per100.protein) + ' · 脂 ' + f1(per100.fat) + ' · ' + n0(per100.kcal) + ' kcal</div>'
-          : '<div class="hint">这是旧记录，只能改克数以外的方式：删掉重记。</div>') +
-        (per100
-          ? '<label class="field">这次吃了多少 g<input type="number" step="1" id="g-grams" value="' + (grams === '' ? '' : f1(grams)) + '" placeholder="30"></label>' +
-            (hasScoop ? '<button class="ghost" data-act="g-scoop" data-g="' + food.scoopG + '">一' + esc(food.scoopLabel || '勺') + ' = ' + f1(food.scoopG) + ' g</button>' : '') +
-            '<div class="hint" id="g-prev"></div>' +
-            '<button class="primary" data-act="item-save" data-meal="' + mealId + '" data-idx="' + (item ? idx : '') + '"' +
-              (food ? ' data-food="' + food.id + '"' : '') + '>保存</button>'
           : '') +
+
+        '<div id="g-block" class="editor-block" style="display:' + (editorMode === 'grams' ? 'flex' : 'none') + '">' +
+          '<label class="field">这次吃了多少 g<input type="number" step="1" id="g-grams" value="' + (grams === '' ? '' : f1(grams)) + '" placeholder="30"></label>' +
+          (hasScoop ? '<button class="ghost" data-act="g-scoop" data-g="' + food.scoopG + '">一' + esc(food.scoopLabel || '勺') + ' = ' + f1(food.scoopG) + ' g</button>' : '') +
+          '<div class="hint" id="g-prev"></div>' +
+        '</div>' +
+
+        '<div id="m-block" class="editor-block" style="display:' + (editorMode === 'manual' ? 'flex' : 'none') + '">' +
+          '<label class="field">名称（选填）<input id="m-name" value="' + esc(item ? (item.name || '') : '') + '" placeholder="如 食堂红烧肉" autocomplete="off"></label>' +
+          '<div class="frow">' +
+            '<label class="field">碳水 g<input type="number" step="1" id="m-carb" value="' + (mC ? f1(mC) : '') + '"></label>' +
+            '<label class="field">蛋白 g<input type="number" step="1" id="m-pro" value="' + (mP ? f1(mP) : '') + '"></label>' +
+          '</div>' +
+          '<div class="frow">' +
+            '<label class="field">脂肪 g<input type="number" step="1" id="m-fat" value="' + (mF ? f1(mF) : '') + '"></label>' +
+            '<label class="field">热量 kcal<input type="number" step="1" id="m-kcal" value="' + (mK ? f1(mK) : '') + '" placeholder="留空自动算"></label>' +
+          '</div>' +
+          '<div class="hint" id="m-prev"></div>' +
+        '</div>' +
+
+        '<button class="primary" data-act="item-save" data-meal="' + mealId + '" data-idx="' + (item ? idx : '') + '"' +
+          (food ? ' data-food="' + food.id + '"' : '') + '>保存</button>' +
         '<button class="ghost" data-act="back-meal" data-meal="' + mealId + '">返回这一餐</button>' +
+        (item ? '<button class="ghost danger" data-act="item-del" data-meal="' + mealId + '" data-idx="' + idx + '">删除这一条</button>' : '') +
       '</div>');
 
     previewGrams();
+    previewManual(false);
     if (q('#g-grams')) q('#g-grams').addEventListener('input', previewGrams);
   }
 
@@ -494,6 +526,21 @@
     var k = g / 100;
     box.textContent = '≈ 碳 ' + f1(gramsPer100.carbs * k) + ' · 蛋 ' + f1(gramsPer100.protein * k) +
       ' · 脂 ' + f1(gramsPer100.fat * k) + ' · ' + n0(gramsPer100.kcal * k) + ' kcal';
+  }
+
+  function previewManual(sync) {
+    var box = q('#m-prev');
+    if (!box) return;
+    var c = num(q('#m-carb') && q('#m-carb').value) || 0;
+    var p = num(q('#m-pro') && q('#m-pro').value) || 0;
+    var f = num(q('#m-fat') && q('#m-fat').value) || 0;
+    var auto = Math.round(c * 4 + p * 4 + f * 9);
+    var kcalEl = q('#m-kcal');
+    var dirty = kcalEl && kcalEl.dataset.dirty === '1';
+    /* 用户没手动改过热量时，改碳蛋脂会让热量跟着重算 */
+    if (sync && kcalEl && !dirty) kcalEl.value = auto ? String(auto) : '';
+    var k = dirty ? (num(kcalEl && kcalEl.value) || 0) : auto;
+    box.textContent = '≈ ' + n0(k) + ' kcal' + (dirty ? '（手填）' : '（按 4/4/9 自动算）');
   }
 
   /* ---- 自定义食物：卡片与编辑 ---- */
@@ -840,15 +887,30 @@
         break;
       case 'meal-clear': {
         var clearId = el.dataset.meal || editingMeal;
+        var cm = day.meals[clearId];
+        var cn = cm && cm.items ? cm.items.length : 0;
+        if (!cn) break;
+        if (!confirm('清掉这一餐的全部 ' + cn + ' 条记录？')) break;
         delete day.meals[clearId];
         persist(); closeSheet();
         break;
       }
 
       case 'item-add': openFoodPicker(el.dataset.meal); break;
-      case 'item-pick': openGrams(el.dataset.meal, el.dataset.id); break;
-      case 'item-edit': openGrams(el.dataset.meal, null, el.dataset.idx); break;
+      case 'item-manual': openItemEditor(el.dataset.meal, null, null, true); break;
+      case 'item-pick': openItemEditor(el.dataset.meal, el.dataset.id); break;
+      case 'item-edit': openItemEditor(el.dataset.meal, null, el.dataset.idx); break;
       case 'back-meal': openMeal(el.dataset.meal); break;
+
+      case 'item-mode': {
+        editorMode = el.dataset.mode;
+        Array.prototype.forEach.call(document.querySelectorAll('#it-seg button'), function (b) {
+          b.classList.toggle('on', b.dataset.mode === editorMode);
+        });
+        if (q('#g-block')) q('#g-block').style.display = editorMode === 'grams' ? 'flex' : 'none';
+        if (q('#m-block')) q('#m-block').style.display = editorMode === 'manual' ? 'flex' : 'none';
+        break;
+      }
 
       case 'g-scoop': {
         if (q('#g-grams')) { q('#g-grams').value = el.dataset.g; previewGrams(); }
@@ -857,19 +919,37 @@
       case 'item-save': {
         var mid = el.dataset.meal;
         var idxAttr = el.dataset.idx;
-        var grams = num(q('#g-grams') && q('#g-grams').value);
-        if (grams === null || grams <= 0) { alert('先填这次吃了多少克'); break; }
         var dm = dayOf(cursor, true);
         var mm = dm.meals[mid] || (dm.meals[mid] = { items: [], note: '' });
-        if (idxAttr !== '' && idxAttr !== undefined && idxAttr !== null) {
-          var it0 = mm.items[Number(idxAttr)];
-          if (it0) S.recalcItem(it0, grams);
+        var isEdit = idxAttr !== '' && idxAttr !== undefined && idxAttr !== null;
+
+        if (editorMode === 'manual') {
+          var payload = {
+            name: (q('#m-name') ? q('#m-name').value.trim() : ''),
+            carbs: num(q('#m-carb') ? q('#m-carb').value : null) || 0,
+            protein: num(q('#m-pro') ? q('#m-pro').value : null) || 0,
+            fat: num(q('#m-fat') ? q('#m-fat').value : null) || 0,
+            kcal: num(q('#m-kcal') ? q('#m-kcal').value : null)
+          };
+          if (isEdit) {
+            var itm = mm.items[Number(idxAttr)];
+            if (itm) S.setManualItem(itm, payload);
+          } else {
+            mm.items.push(S.manualItem(payload.name, payload));
+          }
         } else {
-          var fid = el.dataset.food;
-          var fo = state.foods.filter(function (x) { return x.id === fid; })[0];
-          if (!fo) { alert('这个食物已被删除'); break; }
-          mm.items.push(S.makeItem(fo, grams));
-          fo.lastUsedAt = new Date().toISOString();
+          var grams = num(q('#g-grams') && q('#g-grams').value);
+          if (grams === null || grams <= 0) { alert('先填这次吃了多少克'); break; }
+          if (isEdit) {
+            var it0 = mm.items[Number(idxAttr)];
+            if (it0) S.recalcItem(it0, grams);
+          } else {
+            var fid = el.dataset.food;
+            var fo = state.foods.filter(function (x) { return x.id === fid; })[0];
+            if (!fo) { alert('这个食物已被删除'); break; }
+            mm.items.push(S.makeItem(fo, grams));
+            fo.lastUsedAt = new Date().toISOString();
+          }
         }
         S.save(state); render(); openMeal(mid);
         break;
@@ -877,8 +957,10 @@
       case 'item-del': {
         var dme = dayOf(cursor, true);
         var mm2 = dme.meals[el.dataset.meal];
-        if (mm2 && mm2.items) {
-          mm2.items.splice(Number(el.dataset.idx), 1);
+        var delIdx = Number(el.dataset.idx);
+        if (mm2 && mm2.items && mm2.items[delIdx]) {
+          if (!confirm('删除「' + (mm2.items[delIdx].name || '这条记录') + '」？')) break;
+          mm2.items.splice(delIdx, 1);
           S.save(state); render(); openMeal(el.dataset.meal);
         }
         break;
@@ -1013,6 +1095,11 @@
       filterFoodRows();
     } else if (e.target.id === 'fp-q') {
       filterPickRows();
+    } else if (e.target.id === 'm-kcal') {
+      e.target.dataset.dirty = '1';
+      previewManual(true);
+    } else if (['m-carb', 'm-pro', 'm-fat'].indexOf(e.target.id) >= 0) {
+      previewManual(true);
     }
   });
 

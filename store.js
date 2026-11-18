@@ -191,6 +191,29 @@
     return item;
   }
 
+  /* 手写条目：直接填营养，不挂食物；热量留空按 4/4/9 */
+  function setManualItem(item, m) {
+    var src = m || {};
+    item.name = (src.name !== undefined && src.name !== '') ? src.name : (item.name || '手写条目');
+    item.grams = null;
+    item.per100 = null;
+    item.carbs = r1(nz(src.carbs));
+    item.protein = r1(nz(src.protein));
+    item.fat = r1(nz(src.fat));
+    var hasKcal = src.kcal !== null && src.kcal !== undefined && src.kcal !== '';
+    item.kcal = hasKcal ? r1(nz(src.kcal)) : r1(item.carbs * 4 + item.protein * 4 + item.fat * 9);
+    return item;
+  }
+
+  function manualItem(name, m) {
+    var seed = {
+      id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      foodId: null, name: name || '手写条目', grams: null, per100: null,
+      kcal: 0, carbs: 0, protein: 0, fat: 0
+    };
+    return setManualItem(seed, Object.assign({ name: name }, m || {}));
+  }
+
   /* 一餐合计：新结构按条目加总；旧结构（没有 items）按原来的总数 */
   function mealTotals(meal) {
     var t = { kcal: 0, carbs: 0, protein: 0, fat: 0, items: 0 };
@@ -653,6 +676,7 @@
     mealKcal: mealKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
     newFood: newFood, per100Of: per100Of, foodMacros: foodMacros, makeItem: makeItem,
     recalcItem: recalcItem, mealTotals: mealTotals, sortFoods: sortFoods,
+    manualItem: manualItem, setManualItem: setManualItem,
     kjToKcal: kjToKcal, kcalToKj: kcalToKj,
     ma7: ma7, trend: trend, toCsv: toCsv, r1: r1,
     parseHealth: parseHealth, applyHealth: applyHealth, burnTotalOf: burnTotalOf, mergeState: mergeState
