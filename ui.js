@@ -7,11 +7,20 @@
   var view = 'today';
   var cursor = S.todayKey();
   var range = 'day';
+  var burnView = 'total';   /* total | lift | cardio */
   var calMonth = S.parseKey(cursor);
   var selDate = cursor;
   var editingMeal = 'breakfast';
   var app = document.getElementById('app');
   var modal = document.getElementById('modal-root');
+
+  /* ---- 禁止缩放：viewport 之外再拦一道（iOS 会忽略 user-scalable=no） ---- */
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (name) {
+    document.addEventListener(name, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();   /* 双指捏合 */
+  }, { passive: false });
 
   var ICON = {
     coffee: '<path d="M5 8h11v6a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V8z"/><path d="M16 9h2a2.5 2.5 0 0 1 0 5h-2"/><path d="M8 5V3M11 5V3"/>',
@@ -87,12 +96,15 @@
     var isDay = range === 'day';
     var weights = tr.map(function (p) { return isDay ? p.ma : p.weight; });
     var raws = isDay ? tr.map(function (p) { return p.weight; }) : [];
-    var burns = tr.map(function (p) { return p.burn; });
+    var burns = tr.map(function (p) {
+      return burnView === 'lift' ? p.lift : burnView === 'cardio' ? p.cardio : p.burn;
+    });
+    var burnName = { total: '训练消耗', lift: '力量消耗', cardio: '有氧消耗' }[burnView];
 
     var lastW = null, lastB = null;
     for (var i = tr.length - 1; i >= 0; i--) {
       if (lastW === null && weights[i] !== null) lastW = weights[i];
-      if (lastB === null && tr[i].burn !== null) lastB = tr[i].burn;
+      if (lastB === null && burns[i] !== null) lastB = burns[i];
     }
     var rangeLabel = { day: '近 30 天', week: '近 12 周', month: '近 12 月' }[range];
 
@@ -142,10 +154,15 @@
           '<div class="plot">' + plot(weights, '#0F766E', { raw: raws }) + '</div>' +
         '</div>' +
         '<div class="chart-row">' +
-          '<div class="cr-top"><span class="n">训练消耗 · ' + rangeLabel + '</span>' +
+          '<div class="cr-top"><span class="n">' + burnName + ' · ' + rangeLabel + '</span>' +
+            '<div class="seg seg-xs">' +
+              '<button class="' + (burnView === 'total' ? 'on' : '') + '" data-act="burn-view" data-bv="total">合计</button>' +
+              '<button class="' + (burnView === 'lift' ? 'on' : '') + '" data-act="burn-view" data-bv="lift">力量</button>' +
+              '<button class="' + (burnView === 'cardio' ? 'on' : '') + '" data-act="burn-view" data-bv="cardio">有氧</button>' +
+            '</div>' +
             '<span class="v">' + (lastB === null ? '--' : n0(lastB)) + '<small>kcal</small>' +
             '<span class="d">' + deltaLabel(burns) + '</span></span></div>' +
-          '<div class="plot">' + plot(burns, '#C2861F') + '</div>' +
+          '<div class="plot">' + plot(burns, burnView === 'lift' ? '#7C5CD6' : burnView === 'cardio' ? '#5B8DEF' : '#C2861F') + '</div>' +
         '</div>' +
       '</section>' +
     '</div>';
@@ -280,9 +297,16 @@
       return d.weightKg !== null && d.weightKg !== undefined && d.weightKg !== '';
     }).sort().reverse();
     var recent = allKeys.slice(0, 3).map(function (k) {
-      return '<div class="row"><span class="k">' + S.dayLabel(k) + '</span><span class="v"><b>' + f1(state.days[k].weightKg) + '</b> kg</span></div>';
+      var fat = state.days[k].bodyFatPct;
+      return '<div class="row"><span class="k">' + S.dayLabel(k) + '</span><span class="v"><b>' + f1(state.days[k].weightKg) + '</b> kg' +
+        (fat !== null && fat !== undefined && fat !== '' ? ' · 体脂 ' + f1(fat) + '%' : '') + '</span></div>';
     }).join('');
     var ma = S.ma7(state, S.todayKey());
+    var fatKeys = Object.keys(state.days).filter(function (k) {
+      var v = state.days[k].bodyFatPct;
+      return v !== null && v !== undefined && v !== '';
+    }).sort();
+    var lastFatKey = fatKeys.length ? fatKeys[fatKeys.length - 1] : null;
 
     return '<div class="page">' +
       '<div class="head"><div><h1>身体</h1><div class="sub">档案 · 体重 · 设置</div></div>' +
@@ -295,6 +319,11 @@
           '<div class="row"><span class="k">年龄</span><span class="v"><b>' + n0(p.age) + '</b> 岁</span></div>' +
           '<div class="row"><span class="k">性别</span><span class="v">' + (p.sex === 'male' ? '男' : '女') + '</span></div>' +
           '<div class="row"><span class="k">方案体重</span><span class="v"><b>' + f1(p.weightKg) + '</b> kg</span></div>' +
+          '<div class="row"><span class="k">体脂</span><span class="v">' +
+            (lastFatKey
+              ? '<b>' + f1(state.days[lastFatKey].bodyFatPct) + '</b> % · ' + lastFatKey.slice(5).replace('-', '/')
+              : '—') +
+          '</span></div>' +
           '<div class="row"><span class="k">基础代谢</span><span class="v"><b>' + n0(S.bmr(p)) + '</b> kcal</span></div>' +
           '<div class="row"><span class="k">力训日应吃</span><span class="v"><b>' + n0(S.targetKcal(p, { train: true })) + '</b> kcal</span></div>' +
         '</div>' +
@@ -308,6 +337,7 @@
           '<button class="wbtn" data-act="save-weight">记录</button>' +
         '</div>' +
         '<div class="rows" style="margin-top:10px">' + (recent || '<div class="hint">还没有体重记录</div>') + '</div>' +
+        '<button class="addbtn" data-act="weight-sheet">补记其他日期 · 记体脂</button>' +
       '</section>' +
 
       '<section class="card">' +
@@ -316,7 +346,7 @@
           '<div class="row tap" data-act="plan"><span class="k">训练与饮食方案</span><span class="v">' + (p.direction === 'bulk' ? '增肌' : '减脂') + ' <span class="go">›</span></span></div>' +
           '<div class="row tap" data-act="health"><span class="k">健康数据导入</span><span class="v">' + (hasHealth() ? '已导入' : '未导入') + ' <span class="go">›</span></span></div>' +
           '<div class="row tap" data-act="backup"><span class="k">数据备份与恢复</span><span class="v">' + backupLabel() + ' <span class="go">›</span></span></div>' +
-          '<div class="row tap" data-act="about"><span class="k">关于</span><span class="v">v0.7.0 <span class="go">›</span></span></div>' +
+          '<div class="row tap" data-act="about"><span class="k">关于</span><span class="v">v' + S.VERSION + ' <span class="go">›</span></span></div>' +
         '</div>' +
       '</section>' +
     '</div>';
@@ -431,6 +461,37 @@
       '</div>');
   }
 
+  /* ---- 记录体重（可补记、可记体脂） ---- */
+  function openWeightSheet() {
+    var today = S.todayKey();
+    var d = state.days[today] || S.newDay();
+    openSheet('记录体重', '' +
+      '<div class="fields">' +
+        '<div class="hint">默认今天；可以补记最近 30 天。补记不会改「方案体重」。</div>' +
+        '<label class="field">日期<input type="date" id="wt-date" value="' + today + '" min="' + S.addDays(today, -30) + '" max="' + today + '"></label>' +
+        '<div class="frow">' +
+          '<label class="field">体重 kg<input type="number" step="0.1" id="wt-kg" value="' + (d.weightKg !== null && d.weightKg !== undefined ? f1(d.weightKg) : '') + '" placeholder="63.0"></label>' +
+          '<label class="field">体脂 %（选填）<input type="number" step="0.1" id="wt-fat" value="' + (d.bodyFatPct !== null && d.bodyFatPct !== undefined ? f1(d.bodyFatPct) : '') + '" placeholder="18.5"></label>' +
+        '</div>' +
+        '<div class="hint" id="wt-prev"></div>' +
+        '<button class="primary" data-act="weight-save">保存</button>' +
+      '</div>');
+
+    function upd() {
+      var dk = q('#wt-date').value;
+      var el = q('#wt-prev');
+      if (!S.canBackfill(dk, S.todayKey())) { el.textContent = '只能选最近 30 天，不能选未来'; return; }
+      var day = state.days[dk];
+      if (!day || (day.weightKg === null && day.bodyFatPct === null)) { el.textContent = '这天还没有记录，保存会新建'; return; }
+      el.textContent = '这天已有：' +
+        (day.weightKg !== null && day.weightKg !== undefined ? f1(day.weightKg) + ' kg' : '无体重') +
+        (day.bodyFatPct !== null && day.bodyFatPct !== undefined ? ' · 体脂 ' + f1(day.bodyFatPct) + '%' : '');
+    }
+    q('#wt-date').addEventListener('input', upd);
+    q('#wt-date').addEventListener('change', upd);
+    upd();
+  }
+
   /* ---- 方案 ---- */
   function openPlan() {
     var p = state.plan;
@@ -520,7 +581,7 @@
     var lastHealth = Object.keys(state.days).filter(function (k) { return !!state.days[k].health; }).sort().pop();
     openSheet('关于', '' +
       '<div class="rows">' +
-        '<div class="row"><span class="k">版本</span><span class="v">v0.7.0</span></div>' +
+        '<div class="row"><span class="k">版本</span><span class="v">v' + S.VERSION + '</span></div>' +
         '<div class="row"><span class="k">有记录的天数</span><span class="v">' + days + ' 天</span></div>' +
         '<div class="row"><span class="k">健康数据</span><span class="v">' + (healthDays ? healthDays + ' 天 · 最近 ' + (lastHealth || '--') : '未导入') + '</span></div>' +
         '<div class="row"><span class="k">方案</span><span class="v">' + (state.plan.direction === 'bulk' ? '增肌' : '减脂') + ' · 午饭前练</span></div>' +
@@ -607,6 +668,7 @@
         break;
       }
       case 'range': range = el.dataset.range; render(); break;
+      case 'burn-view': burnView = el.dataset.bv; render(); break;
       case 'meal': openMeal(el.dataset.meal); break;
       case 'workout': openWorkout(); break;
       case 'water': openWater(); break;
@@ -647,6 +709,19 @@
       case 'save-weight': {
         var kg = num(q('#w-input') && q('#w-input').value);
         if (kg !== null) { day.weightKg = kg; state.plan.weightKg = kg; persist(); }
+        break;
+      }
+      case 'weight-sheet': openWeightSheet(); break;
+      case 'weight-save': {
+        var wk = q('#wt-date').value;
+        if (!S.canBackfill(wk, S.todayKey())) { alert('日期只能选最近 30 天'); break; }
+        var wkg = num(q('#wt-kg').value);
+        var wfat = num(q('#wt-fat').value);
+        var wday = dayOf(wk, true);
+        if (wkg !== null) wday.weightKg = wkg;
+        if (wfat !== null) wday.bodyFatPct = wfat;
+        if (wk === S.todayKey() && wkg !== null) state.plan.weightKg = wkg;
+        persist(); closeSheet();
         break;
       }
 

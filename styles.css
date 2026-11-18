@@ -17,6 +17,12 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }
+/* 禁止缩放：双击缩放交给 touch-action，字号不随系统文字大小膨胀 */
+html, body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
 body {
   margin: 0;
   background: var(--bg);
@@ -104,6 +110,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .seg { display: flex; gap: 2px; background: var(--soft); border-radius: 10px; padding: 2px; }
 .seg button { padding: 5px 10px; border-radius: 8px; font-size: 11.5px; color: var(--muted); }
 .seg button.on { background: #fff; color: var(--ink); font-weight: 650; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.seg-xs { padding: 1px; border-radius: 8px; }
+.seg-xs button { padding: 3px 7px; font-size: 10.5px; border-radius: 7px; }
+.cr-top .seg { align-self: center; margin-left: auto; flex: none; }
 
 /* ---------- 折线 ---------- */
 .chart-row { padding: 9px 0; border-top: 1px solid var(--line); }

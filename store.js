@@ -4,6 +4,7 @@
 
   var KEY = 'zghd.v3';
   var LEGACY = ['zghd.v2', 'zghd.v1'];
+  var VERSION = '0.9.3';
 
   var MEALS = [
     { id: 'breakfast', name: '早饭' },
@@ -76,6 +77,17 @@
     return toKey(d);
   }
   function monthKey(key) { return String(key).slice(0, 7); }
+
+  /* 允许补记的日期：今天及之前 30 天内（PRD §4.3） */
+  var BACKFILL_DAYS = 30;
+  function canBackfill(key, today) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(key))) return false;
+    var d = parseKey(key);
+    if (toKey(d) !== key) return false;                 /* 2026-13-01 / 2026-02-30 这类假日期 */
+    var t = parseKey(today || todayKey());
+    var diff = Math.round((t - d) / 86400000);          /* 本地时区，无夏令时 */
+    return diff >= 0 && diff <= BACKFILL_DAYS;
+  }
 
   /* ---------- 代谢 ---------- */
   function bmr(p) {
@@ -194,7 +206,9 @@
         out.push({
           key: k, label: (parseKey(k).getMonth() + 1) + '/' + parseKey(k).getDate(),
           weight: w, ma: w !== null ? ma7(state, k) : null,
-          burn: b ? b.total : null
+          burn: b ? b.total : null,
+          lift: b ? b.lift : null,
+          cardio: b ? b.cardio : null
         });
       }
       return out;
@@ -204,16 +218,21 @@
       var thisWeek = weekStart(endKey);
       for (i = RANGES.week - 1; i >= 0; i--) {
         var ws = addDays(thisWeek, -7 * i);
-        var sumW = 0, nW = 0, sumB = 0, nB = 0;
+        var sumW = 0, nW = 0, sumB = 0, sumL = 0, sumC = 0, nB = 0;
         for (var j = 0; j < 7; j++) {
           k = addDays(ws, j); d = state.days[k];
           if (d && d.weightKg !== null && d.weightKg !== undefined && d.weightKg !== '') { sumW += nz(d.weightKg); nW++; }
-          if (d && !isEmptyDay(d)) { sumB += burnOf(d, state.plan).total; nB++; }
+          if (d && !isEmptyDay(d)) {
+            var bw = burnOf(d, state.plan);
+            sumB += bw.total; sumL += bw.lift; sumC += bw.cardio; nB++;
+          }
         }
         out.push({
           key: ws, label: (parseKey(ws).getMonth() + 1) + '/' + parseKey(ws).getDate(),
           weight: nW ? r1(sumW / nW) : null, ma: null,
-          burn: nB ? Math.round(sumB / nB) : null
+          burn: nB ? Math.round(sumB / nB) : null,
+          lift: nB ? Math.round(sumL / nB) : null,
+          cardio: nB ? Math.round(sumC / nB) : null
         });
       }
       return out;
@@ -223,17 +242,22 @@
     for (i = RANGES.month - 1; i >= 0; i--) {
       var dt = new Date(base.getFullYear(), base.getMonth() - i, 1);
       var mk = dt.getFullYear() + '-' + pad(dt.getMonth() + 1);
-      var sW = 0, cW = 0, sB = 0, cB = 0;
+      var sW = 0, cW = 0, sB = 0, sL = 0, sC = 0, cB = 0;
       Object.keys(state.days).forEach(function (key) {
         if (monthKey(key) !== mk) return;
         var dd = state.days[key];
         if (dd.weightKg !== null && dd.weightKg !== undefined && dd.weightKg !== '') { sW += nz(dd.weightKg); cW++; }
-        if (!isEmptyDay(dd)) { sB += burnOf(dd, state.plan).total; cB++; }
+        if (!isEmptyDay(dd)) {
+          var bm = burnOf(dd, state.plan);
+          sB += bm.total; sL += bm.lift; sC += bm.cardio; cB++;
+        }
       });
       out.push({
         key: mk, label: (dt.getMonth() + 1) + ' 月',
         weight: cW ? r1(sW / cW) : null, ma: null,
-        burn: cB ? Math.round(sB / cB) : null
+        burn: cB ? Math.round(sB / cB) : null,
+        lift: cB ? Math.round(sL / cB) : null,
+        cardio: cB ? Math.round(sC / cB) : null
       });
     }
     return out;
@@ -437,10 +461,11 @@
   }
 
   global.Store = {
-    KEY: KEY, MEALS: MEALS, ACTIVITIES: ACTIVITIES, RANGES: RANGES, FACTOR: FACTOR, RANGE: RANGE,
+    KEY: KEY, VERSION: VERSION, MEALS: MEALS, ACTIVITIES: ACTIVITIES, RANGES: RANGES, FACTOR: FACTOR, RANGE: RANGE,
     defaultPlan: defaultPlan, newDay: newDay, newMeal: newMeal, emptyState: emptyState,
     load: load, save: save, normalize: normalize, migrateV1: migrateV1, migrateV2: migrateV2,
     toKey: toKey, parseKey: parseKey, todayKey: todayKey, addDays: addDays, dayLabel: dayLabel, weekStart: weekStart, monthKey: monthKey,
+    canBackfill: canBackfill,
     bmr: bmr, noExerciseKcal: noExerciseKcal, burnOf: burnOf, balanceKcal: balanceKcal,
     factor: factor, targetKcal: targetKcal, macros: macros, targets: targets,
     mealKcal: mealKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
