@@ -4,7 +4,7 @@
 
   var KEY = 'zghd.v4';
   var LEGACY = ['zghd.v3', 'zghd.v2', 'zghd.v1'];
-  var VERSION = '0.11.0';
+  var VERSION = '0.11.1';
 
   var MEALS = [
     { id: 'breakfast', name: '早饭' },

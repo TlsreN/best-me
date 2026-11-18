@@ -35,6 +35,14 @@ body {
 }
 
 /* ---------- 布局 ---------- */
+/* 状态栏那一块用不滚动的占位条挡住：内容不滚到状态栏下面，iOS 就不会在那里做虚化 */
+body::before {
+  content: '';
+  display: block;
+  flex: none;
+  height: env(safe-area-inset-top);
+  background: var(--bg);
+}
 .app {
   flex: 1;
   overflow-y: auto;
@@ -42,7 +50,7 @@ body {
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(92px + env(safe-area-inset-bottom));
+  padding: 14px 16px calc(92px + env(safe-area-inset-bottom));
 }
 .app.locked { overflow: hidden; }
 .page { display: flex; flex-direction: column; gap: 12px; }
@@ -277,7 +285,7 @@ input[type=number] { font-variant-numeric: tabular-nums; }
 
 /* ---------- 矮屏压缩：首页锁一屏 ---------- */
 @media (max-height: 780px) {
-  .app { padding-top: calc(env(safe-area-inset-top) + 8px); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .app { padding-top: 8px; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
   .page { gap: 8px; }
   .card { padding: 12px; }
   .ring { width: 62px; height: 62px; }
@@ -290,7 +298,7 @@ input[type=number] { font-variant-numeric: tabular-nums; }
   .head h1.m-date { font-size: clamp(16px, 4.4vw, 22px); }
 }
 @media (max-height: 700px) {
-  .app { padding-top: calc(env(safe-area-inset-top) + 6px); padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .app { padding-top: 6px; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .page { gap: 6px; }
   .card { padding: 10px; }
   .card-t { margin-bottom: 8px; }
