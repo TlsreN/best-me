@@ -86,7 +86,7 @@
 
   /* ---------------- 今天 ---------------- */
   function viewToday() {
-    var day = dayOf(cursor, true);
+    var day = state.days[cursor] || S.newDay();
     var t = S.dayTotals(day);
     var tg = S.targets(state.plan, day);
     var m = tg.macros;
@@ -110,9 +110,11 @@
 
     return '<div class="page today">' +
       '<div class="head">' +
-        '<div><h1>今天<button class="refresh" data-act="reload" title="刷新">↻</button></h1>' +
-        '<div class="sub">' + S.dayLabel(cursor) + (isToday ? '' : ' · 非今天') + '</div></div>' +
+        '<h1 class="m-date"><button class="date-btn" data-act="cal-open" title="选择日期">' +
+          S.dayLabel(cursor) + '<em class="' + (isToday ? 'on' : 'off') + '">' + (isToday ? '· 今天' : '· 非今天') + '</em>' +
+        '</button></h1>' +
         '<div class="right">' +
+          '<button class="refresh" data-act="reload" title="刷新">↻</button>' +
           '<button class="pill ' + (day.train ? 'on' : 'rest') + '" data-act="toggle-train">' + (day.train ? '力训日' : '休息日') + '</button>' +
         '</div>' +
       '</div>' +
@@ -168,20 +170,70 @@
     '</div>';
   }
 
+  /* ---- 首页月历：直接选历史日期 ---- */
+  var pickMonth = null;
+
+  function openHomeCalendar() {
+    pickMonth = S.parseKey(cursor);
+    renderHomeCalendar();
+  }
+
+  function renderHomeCalendar() {
+    var y = pickMonth.getFullYear(), mo = pickMonth.getMonth();
+    var first = new Date(y, mo, 1);
+    var startDow = (first.getDay() + 6) % 7;
+    var dim = new Date(y, mo + 1, 0).getDate();
+    var todayK = S.todayKey();
+    var cells = '';
+    for (var i = 0; i < startDow; i++) cells += '<div class="d out"></div>';
+    for (var d = 1; d <= dim; d++) {
+      var key = y + '-' + (mo + 1 < 10 ? '0' : '') + (mo + 1) + '-' + (d < 10 ? '0' : '') + d;
+      var future = key > todayK;
+      var st = future ? 'out' : S.statusOf(state, key);
+      cells += '<button class="d ' + st + (key === todayK ? ' today' : '') + (key === cursor ? ' sel' : '') + '"' +
+        (future ? ' disabled' : ' data-act="pick-day" data-date="' + key + '"') + '>' +
+        '<span>' + d + '</span>' + (future ? '' : '<i class="dot"></i>') + '</button>';
+    }
+    openSheet('选择日期', '<div class="fields">' +
+      '<div class="cal-head">' +
+        '<button class="circle" data-act="pick-prev">‹</button>' +
+        '<b>' + y + ' 年 ' + (mo + 1) + ' 月</b>' +
+        '<button class="circle" data-act="pick-next">›</button>' +
+      '</div>' +
+      '<div class="cal">' +
+        '<div class="dw">一</div><div class="dw">二</div><div class="dw">三</div><div class="dw">四</div><div class="dw">五</div><div class="dw">六</div><div class="dw">日</div>' +
+        cells +
+      '</div>' +
+      (cursor !== todayK ? '<button class="ghost" data-act="pick-today">回到今天</button>' : '') +
+      '<div class="hint">点某天，首页整页切到那天（四环、趋势、快捷输入都记那天）。未来日期不可选。</div>' +
+    '</div>');
+  }
+
   function quick(meal, icon, label) {
     return '<button class="q" data-act="meal" data-meal="' + meal + '">' +
       '<span class="qi"><svg viewBox="0 0 24 24">' + icon + '</svg></span><em>' + label + '</em></button>';
   }
 
+  /* 从正上方起、逆时针画到比例处；0 与 100% 都在上方 */
+  function arcD(pct) {
+    var p = Math.max(0, Math.min(1, pct));
+    if (p <= 0) return '';
+    if (p >= 1) return 'M50 8 A42 42 0 1 0 50 92 A42 42 0 1 0 50 8';
+    var end = S.ringDot(p);
+    return 'M50 8 A42 42 0 ' + (p > 0.5 ? 1 : 0) + ' 0 ' + end.x + ' ' + end.y;
+  }
+
   function ring(label, value, goal, color, extra) {
     var pct = goal > 0 ? Math.min(value / goal, 1) : 0;
-    var circ = 2 * Math.PI * 42;
-    var dash = (pct * circ).toFixed(1) + ' ' + (circ - pct * circ).toFixed(1);
+    var d = arcD(pct);
+    var m90 = S.ringDot(0.9), m100 = S.ringDot(1);
+    var withGoal = label.indexOf('饮水') < 0;
     return '<div class="ring-item' + (value > goal ? ' over' : '') + '" ' + (extra || '') + '>' +
-      '<div class="ring"><svg viewBox="0 0 100 100">' +
+      '<div class="ring"><svg viewBox="0 0 100 100" aria-hidden="true">' +
         '<circle class="track" cx="50" cy="50" r="42" stroke="' + color + '"/>' +
-        '<circle class="arc" cx="50" cy="50" r="42" stroke="' + color + '" stroke-dasharray="' + dash + '"/>' +
-        '<circle cx="50" cy="8" r="4" fill="' + color + '"/>' +
+        (d ? '<path class="arc" d="' + d + '" stroke="' + color + '"/>' : '') +
+        (withGoal ? '<circle class="mark mark90" cx="' + m90.x + '" cy="' + m90.y + '" r="3.4" stroke="' + color + '"><title>90% 达标下限</title></circle>' : '') +
+        '<circle class="mark mark100" cx="' + m100.x + '" cy="' + m100.y + '" r="3.8" fill="' + color + '"><title>100% 目标</title></circle>' +
       '</svg><div class="val">' + n0(value) + '</div></div>' +
       '<div><div class="ring-l">' + label + '</div><div class="ring-p">' + n0(value) + ' / ' + n0(goal) + '</div></div>' +
     '</div>';
@@ -363,6 +415,7 @@
   /* ---------------- 渲染 ---------------- */
   function render() {
     var keep = app.scrollTop;
+    app.classList.toggle('locked', view === 'today');
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) {
       t.classList.toggle('on', t.dataset.view === view);
     });
@@ -865,12 +918,31 @@
     var el = e.target.closest ? e.target.closest('[data-act]') : null;
     if (!el) return;
     var act = el.dataset.act;
-    var day = dayOf(cursor, true);
+    /* 只在真要写入时才创建当天记录，浏览历史日期不产生空记录 */
+    var dayCache = null;
+    function curDay() { if (!dayCache) dayCache = dayOf(cursor, true); return dayCache; }
 
     switch (act) {
       case 'close': closeSheet(); break;
-      case 'toggle-train': day.train = !day.train; persist(); break;
+      case 'toggle-train': curDay().train = !curDay().train; persist(); break;
       case 'reload': location.reload(); break;
+      case 'cal-open': openHomeCalendar(); break;
+      case 'pick-prev': pickMonth = new Date(pickMonth.getFullYear(), pickMonth.getMonth() - 1, 1); renderHomeCalendar(); break;
+      case 'pick-next': pickMonth = new Date(pickMonth.getFullYear(), pickMonth.getMonth() + 1, 1); renderHomeCalendar(); break;
+      case 'pick-day': {
+        cursor = el.dataset.date;
+        selDate = cursor;
+        calMonth = S.parseKey(cursor);
+        closeSheet(); render();
+        break;
+      }
+      case 'pick-today': {
+        cursor = S.todayKey();
+        selDate = cursor;
+        calMonth = S.parseKey(cursor);
+        closeSheet(); render();
+        break;
+      }
       case 'toggle-dir': {
         state.plan.direction = state.plan.direction === 'bulk' ? 'cut' : 'bulk';
         persist();
@@ -887,11 +959,11 @@
         break;
       case 'meal-clear': {
         var clearId = el.dataset.meal || editingMeal;
-        var cm = day.meals[clearId];
+        var cm = curDay().meals[clearId];
         var cn = cm && cm.items ? cm.items.length : 0;
         if (!cn) break;
         if (!confirm('清掉这一餐的全部 ' + cn + ' 条记录？')) break;
-        delete day.meals[clearId];
+        delete curDay().meals[clearId];
         persist(); closeSheet();
         break;
       }
@@ -1003,24 +1075,24 @@
       case 'workout-save': {
         var a = S.ACTIVITIES.filter(function (x) { return x.id === q('#t-act').value; })[0] || S.ACTIVITIES[0];
         var min = num(q('#t-min').value) || 0;
-        day.lift = { kcal: num(q('#t-lift').value) || 0, volume: num(q('#t-vol').value) || 0, note: '' };
-        day.cardio = min ? { act: a.id, minutes: min, kcal: Math.round(a.rate * Number(state.plan.weightKg) * (min / 60)) } : null;
+        curDay().lift = { kcal: num(q('#t-lift').value) || 0, volume: num(q('#t-vol').value) || 0, note: '' };
+        curDay().cardio = min ? { act: a.id, minutes: min, kcal: Math.round(a.rate * Number(state.plan.weightKg) * (min / 60)) } : null;
         persist(); closeSheet();
         break;
       }
-      case 'workout-clear': day.lift = null; day.cardio = null; persist(); closeSheet(); break;
+      case 'workout-clear': curDay().lift = null; curDay().cardio = null; persist(); closeSheet(); break;
 
-      case 'water-add': day.waterMl = (day.waterMl || 0) + Number(el.dataset.ml); persist(); closeSheet(); break;
+      case 'water-add': curDay().waterMl = (curDay().waterMl || 0) + Number(el.dataset.ml); persist(); closeSheet(); break;
       case 'water-custom': {
         var ml = num(q('#water-ml') && q('#water-ml').value);
-        if (ml) { day.waterMl = (day.waterMl || 0) + ml; persist(); closeSheet(); }
+        if (ml) { curDay().waterMl = (curDay().waterMl || 0) + ml; persist(); closeSheet(); }
         break;
       }
-      case 'water-reset': day.waterMl = 0; persist(); closeSheet(); break;
+      case 'water-reset': curDay().waterMl = 0; persist(); closeSheet(); break;
 
       case 'save-weight': {
         var kg = num(q('#w-input') && q('#w-input').value);
-        if (kg !== null) { day.weightKg = kg; state.plan.weightKg = kg; persist(); }
+        if (kg !== null) { curDay().weightKg = kg; state.plan.weightKg = kg; persist(); }
         break;
       }
       case 'weight-sheet': openWeightSheet(); break;

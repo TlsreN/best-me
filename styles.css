@@ -44,10 +44,15 @@ body {
   margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + 14px) 16px calc(92px + env(safe-area-inset-bottom));
 }
+.app.locked { overflow: hidden; }
 .page { display: flex; flex-direction: column; gap: 12px; }
 
 .head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 0; }
 .head h1 { margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -.5px; }
+.head h1.m-date { font-size: clamp(17px, 4.7vw, 25px); }
+.date-btn { font-weight: 700; letter-spacing: -.5px; text-align: left; }
+.date-btn em { font-style: normal; font-size: .62em; font-weight: 600; margin-left: 3px; letter-spacing: 0; color: var(--accent); }
+.date-btn em.off { color: #B07A16; }
 .head .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .head .right { display: flex; align-items: center; gap: 8px; }
 
@@ -89,9 +94,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .rings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 12px; }
 .ring-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .ring { width: 72px; height: 72px; position: relative; }
-.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring svg { width: 100%; height: 100%; }
 .ring .track { fill: none; stroke-width: 7; opacity: .16; }
-.ring .arc { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dasharray .3s ease; }
+.ring .arc { fill: none; stroke-width: 7; stroke-linecap: round; }
+.ring .mark90 { fill: #fff; stroke-width: 2; opacity: .95; }
+.ring .mark100 { stroke: none; }
 .ring .val { position: absolute; inset: 0; display: grid; place-items: center; font-size: 18px; font-weight: 700; }
 .ring-l { font-size: 11.5px; color: #3C3C41; font-weight: 500; text-align: center; }
 .ring-p { font-size: 10.5px; color: var(--muted); text-align: center; }
@@ -262,3 +269,39 @@ input[type=number] { font-variant-numeric: tabular-nums; }
 .tag.st-warm  { background: #F2F9C4; color: #6E7A00; }
 .tag.st-over  { background: #FBEDEC; color: #B3423A; }
 .tag.st-empty { background: #F2F2F5; color: #8B8B90; }
+
+/* ---------- 首页月历弹层 ---------- */
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cal-head b { font-size: 14px; font-weight: 650; }
+.cal .d:disabled { opacity: .3; }
+
+/* ---------- 矮屏压缩：首页锁一屏 ---------- */
+@media (max-height: 780px) {
+  .app { padding-top: calc(env(safe-area-inset-top) + 8px); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .page { gap: 8px; }
+  .card { padding: 12px; }
+  .ring { width: 62px; height: 62px; }
+  .ring .val { font-size: 15px; }
+  .ring-item { gap: 4px; }
+  .quick-sep { margin: 10px -12px 8px; }
+  .qi { width: 38px; height: 38px; border-radius: 12px; }
+  .qi svg { width: 19px; height: 19px; }
+  .plot { height: 46px; }
+  .head h1.m-date { font-size: clamp(16px, 4.4vw, 22px); }
+}
+@media (max-height: 700px) {
+  .app { padding-top: calc(env(safe-area-inset-top) + 6px); padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .page { gap: 6px; }
+  .card { padding: 10px; }
+  .card-t { margin-bottom: 8px; }
+  .ring { width: 54px; height: 54px; }
+  .ring .val { font-size: 13px; }
+  .ring-l { font-size: 10.5px; }
+  .ring-p { font-size: 9.5px; }
+  .qi { width: 34px; height: 34px; border-radius: 11px; }
+  .qi svg { width: 17px; height: 17px; }
+  .q em { font-size: 10px; }
+  .quick-sep { margin: 8px -10px 6px; }
+  .plot { height: 40px; }
+  .head h1.m-date { font-size: clamp(15px, 4.2vw, 20px); }
+}

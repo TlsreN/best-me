@@ -4,7 +4,7 @@
 
   var KEY = 'zghd.v4';
   var LEGACY = ['zghd.v3', 'zghd.v2', 'zghd.v1'];
-  var VERSION = '0.10.1';
+  var VERSION = '0.11.0';
 
   var MEALS = [
     { id: 'breakfast', name: '早饭' },
@@ -212,6 +212,17 @@
       kcal: 0, carbs: 0, protein: 0, fat: 0
     };
     return setManualItem(seed, Object.assign({ name: name }, m || {}));
+  }
+
+  /* 环上刻度点：0% 在正上方，逆时针为正，返回 100×100 viewBox 坐标 */
+  function ringDot(ratio, radius) {
+    var r = (radius === undefined || radius === null) ? 42 : nz(radius);
+    var p = Math.max(0, Math.min(1, nz(ratio)));
+    var rad = p * 2 * Math.PI;
+    return {
+      x: Math.round((50 - r * Math.sin(rad)) * 10) / 10,
+      y: Math.round((50 - r * Math.cos(rad)) * 10) / 10
+    };
   }
 
   /* 一餐合计：新结构按条目加总；旧结构（没有 items）按原来的总数 */
@@ -676,7 +687,7 @@
     mealKcal: mealKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
     newFood: newFood, per100Of: per100Of, foodMacros: foodMacros, makeItem: makeItem,
     recalcItem: recalcItem, mealTotals: mealTotals, sortFoods: sortFoods,
-    manualItem: manualItem, setManualItem: setManualItem,
+    manualItem: manualItem, setManualItem: setManualItem, ringDot: ringDot,
     kjToKcal: kjToKcal, kcalToKj: kcalToKj,
     ma7: ma7, trend: trend, toCsv: toCsv, r1: r1,
     parseHealth: parseHealth, applyHealth: applyHealth, burnTotalOf: burnTotalOf, mergeState: mergeState

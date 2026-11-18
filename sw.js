@@ -1,4 +1,4 @@
-const CACHE = 'zghd-v4';
+const CACHE = 'zghd-v5';
 const ASSETS = ['./', './index.html', './styles.css', './store.js', './ui.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (e) => {
