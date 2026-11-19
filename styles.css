@@ -50,7 +50,7 @@ body::before {
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 14px 16px calc(92px + env(safe-area-inset-bottom));
+  padding: 32px 16px calc(92px + env(safe-area-inset-bottom));
 }
 .app.locked { overflow: hidden; }
 .page { display: flex; flex-direction: column; gap: 12px; }
