@@ -108,6 +108,12 @@
     }
     var rangeLabel = { day: '近 30 天', week: '近 12 周', month: '近 12 月' }[range];
 
+    /* 快捷入口上色：这一餐记过没有 */
+    var filledMeals = {};
+    S.MEALS.forEach(function (m) {
+      filledMeals[m.id] = S.hasMealData(day.meals && day.meals[m.id]);
+    });
+
     return '<div class="page today">' +
       '<div class="head">' +
         '<h1 class="m-date"><button class="date-btn" data-act="cal-open" title="选择日期">' +
@@ -132,11 +138,11 @@
         '</div>' +
         '<div class="quick-sep"></div>' +
         '<div class="quick">' +
-          quick('breakfast', ICON.coffee, '早饭') +
-          quick('pre', ICON.bolt, '练前') +
-          quick('lunch', ICON.bowl, '午饭') +
-          quick('dinner', ICON.moon, '晚饭') +
-          quick('snack', ICON.cookie, '加餐') +
+          quick('breakfast', ICON.coffee, '早饭', filledMeals.breakfast) +
+          quick('pre', ICON.bolt, '练前', filledMeals.pre) +
+          quick('lunch', ICON.bowl, '午饭', filledMeals.lunch) +
+          quick('dinner', ICON.moon, '晚饭', filledMeals.dinner) +
+          quick('snack', ICON.cookie, '加餐', filledMeals.snack) +
           '<button class="q" data-act="workout"><span class="qi"><svg viewBox="0 0 24 24">' + ICON.dumb + '</svg></span><em>训练</em></button>' +
         '</div>' +
       '</section>' +
@@ -209,8 +215,9 @@
     '</div>');
   }
 
-  function quick(meal, icon, label) {
-    return '<button class="q" data-act="meal" data-meal="' + meal + '">' +
+  function quick(meal, icon, label, filled) {
+    return '<button class="q' + (filled ? ' filled' : '') + '" data-act="meal" data-meal="' + meal + '"' +
+      (filled ? ' title="已记录"' : '') + '>' +
       '<span class="qi"><svg viewBox="0 0 24 24">' + icon + '</svg></span><em>' + label + '</em></button>';
   }
 

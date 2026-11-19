@@ -120,6 +120,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .qi svg { width: 21px; height: 21px; stroke: #26262A; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .q em { font-style: normal; font-size: 11px; color: #3C3C41; }
 .q:active .qi { background: #E9E9EC; }
+.q.filled .qi { background: var(--accent); }
+.q.filled .qi svg { stroke: #fff; }
+.q.filled em { color: var(--accent); font-weight: 650; }
+.q.filled:active .qi { background: #186F56; }
 
 /* ---------- 分段 ---------- */
 .seg { display: flex; gap: 2px; background: var(--soft); border-radius: 10px; padding: 2px; }

@@ -4,7 +4,7 @@
 
   var KEY = 'zghd.v4';
   var LEGACY = ['zghd.v3', 'zghd.v2', 'zghd.v1'];
-  var VERSION = '0.11.2';
+  var VERSION = '0.11.3';
 
   var MEALS = [
     { id: 'breakfast', name: '早饭' },
@@ -243,6 +243,12 @@
     }
     t.kcal = r1(t.kcal); t.carbs = r1(t.carbs); t.protein = r1(t.protein); t.fat = r1(t.fat);
     return t;
+  }
+
+  /* 这一餐有没有记录（首页快捷入口靠它上色） */
+  function hasMealData(meal) {
+    var t = mealTotals(meal);
+    return !!(t.kcal || t.carbs || t.protein || t.fat);
   }
 
   /* 最近使用优先，同时间按名字 */
@@ -686,7 +692,7 @@
     factor: factor, targetKcal: targetKcal, macros: macros, targets: targets,
     mealKcal: mealKcal, dayTotals: dayTotals, isEmptyDay: isEmptyDay, statusOf: statusOf,
     newFood: newFood, per100Of: per100Of, foodMacros: foodMacros, makeItem: makeItem,
-    recalcItem: recalcItem, mealTotals: mealTotals, sortFoods: sortFoods,
+    recalcItem: recalcItem, mealTotals: mealTotals, sortFoods: sortFoods, hasMealData: hasMealData,
     manualItem: manualItem, setManualItem: setManualItem, ringDot: ringDot,
     kjToKcal: kjToKcal, kcalToKj: kcalToKj,
     ma7: ma7, trend: trend, toCsv: toCsv, r1: r1,
