@@ -465,10 +465,11 @@
           '<div><b>' + n0(t.fat) + '</b><span>脂肪 g</span></div>' +
           '<div><b>' + n0(t.kcal) + '</b><span>kcal</span></div>' +
         '</div>' +
-        (items.length ? '<div class="rows">' + rows + '</div>' : '<div class="hint">这一餐还没记东西。点下面「加一条」从食物库里选。</div>') +
-        '<button class="ghost" data-act="item-add" data-meal="' + meal.id + '">+ 从食物库加一条</button>' +
-        '<button class="ghost" data-act="item-manual" data-meal="' + meal.id + '">+ 手写一条（不用建食物）</button>' +
-        (items.length ? '<button class="ghost danger" data-act="meal-clear" data-meal="' + meal.id + '">清掉这一餐</button>' : '') +
+        (items.length ? '<div class="items-box">' + rows + '</div>' : '') +
+        '<div class="two-actions">' +
+          '<button class="ghost" data-act="item-add" data-meal="' + meal.id + '">＋ 从食物库加一条</button>' +
+          '<button class="ghost" data-act="item-manual" data-meal="' + meal.id + '">＋ 手写一条</button>' +
+        '</div>' +
         '<div class="hint">合计按条目自动算；点 ✎ 修改（食物条目可切「直接填营养」），点 × 删除。</div>' +
       '</div>');
   }
@@ -964,16 +965,6 @@
       case 'meal-save':
         /* v4 起一餐由条目组成，不再有整餐手填 */
         break;
-      case 'meal-clear': {
-        var clearId = el.dataset.meal || editingMeal;
-        var cm = curDay().meals[clearId];
-        var cn = cm && cm.items ? cm.items.length : 0;
-        if (!cn) break;
-        if (!confirm('清掉这一餐的全部 ' + cn + ' 条记录？')) break;
-        delete curDay().meals[clearId];
-        persist(); closeSheet();
-        break;
-      }
 
       case 'item-add': openFoodPicker(el.dataset.meal); break;
       case 'item-manual': openItemEditor(el.dataset.meal, null, null, true); break;

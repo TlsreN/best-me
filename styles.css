@@ -195,6 +195,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .meal-sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: #F7F7F9; border-radius: 14px; padding: 10px 6px; text-align: center; }
 .meal-sum b { display: block; font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
 .meal-sum span { font-size: 10px; color: var(--muted); }
+.items-box { background: #F7F7F9; border-radius: 15px; padding: 0 12px; }
+.items-box .list-item { padding: 10px 0; }
+.two-actions { display: flex; gap: 8px; }
+.two-actions .ghost { width: auto; flex: 1; padding: 11px 4px; font-size: 12.5px; }
 .editor-block { display: flex; flex-direction: column; gap: 10px; }
 .food-row .v { max-width: 58%; text-align: right; line-height: 1.35; }
 
